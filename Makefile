@@ -1,7 +1,7 @@
 .PHONY: lint test mock build docker-build up down
 
 lint:
-	golangci-lint run
+	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint:latest golangci-lint run
 
 test:
 	go test ./...
