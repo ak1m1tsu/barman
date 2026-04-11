@@ -70,6 +70,12 @@ func main() {
 	bot.Session.AddHandler(registry.Handle)
 	bot.Session.AddHandler(handler.NewMemberJoinHandler(assignAutoRole))
 
+	prefix := cfg.Discord.Prefix
+	if prefix == "" {
+		prefix = "!"
+	}
+	bot.Session.AddHandler(handler.NewMessageReactHandler(prefix, fetchGIF))
+
 	if err := bot.Session.Open(); err != nil {
 		logrus.WithError(err).Fatal("discord: failed to open session")
 	}
