@@ -115,9 +115,15 @@ func NewMessageReactHandler(prefix string, fetchGIF *reactionuc.FetchGIFUseCase)
 			Image: &discordgo.MessageEmbedImage{URL: gifURL},
 		}
 
+		// Reply to the original message (the one that was reacted to) when available,
+		// otherwise reply to the command message itself.
+		ref := msg.Reference()
+		if msg.MessageReference != nil {
+			ref = msg.MessageReference
+		}
 		s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
 			Embed:     embed,
-			Reference: msg.Reference(),
+			Reference: ref,
 		})
 	}
 }
