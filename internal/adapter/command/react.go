@@ -79,47 +79,112 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFUseCase) (*discordgo.Applicati
 		reactionType := opts[0].StringValue()
 		meta := reactionsMeta[reactionType]
 
-		actor := fmt.Sprintf("<@%s>", i.Member.User.ID)
+		actor := displayName(i.Member)
 
-		var sentence string
+		// Resolve target
+		var targetID string
+		var targetName string
 		if len(opts) > 1 {
 			targetUser := opts[1].UserValue(s)
-			if targetUser.ID == i.Member.User.ID {
-				sentence = fmt.Sprintf(meta.withTarget, actor, "себя")
+			targetID = targetUser.ID
+			if targetID == i.Member.User.ID {
+				targetName = "себя"
 			} else {
-				sentence = fmt.Sprintf(meta.withTarget, actor, fmt.Sprintf("<@%s>", targetUser.ID))
+				targetMember, err := s.GuildMember(i.GuildID, targetID)
+				if err != nil {
+					logrus.WithError(err).WithFields(logrus.Fields{
+						"guild_id": i.GuildID,
+						"user_id":  targetID,
+						"command":  "react " + reactionType,
+					}).Error("failed to fetch target guild member")
+					respondEphemeral(s, i, "Не удалось получить информацию о пользователе.")
+					return
+				}
+				targetName = displayName(targetMember)
 			}
-		} else {
+		}
+
+		// Build sentence
+		var sentence string
+		if targetName == "" {
 			sentence = fmt.Sprintf(meta.withoutTarget, actor)
+		} else {
+			sentence = fmt.Sprintf(meta.withTarget, actor, targetName)
+		}
+
+		log := logrus.WithFields(logrus.Fields{
+			"guild_id": i.GuildID,
+			"reaction": reactionType,
+			"command":  "react",
+		})
+
+		// When targeting another user: ping them first, then edit to embed.
+		// This ensures the target receives a notification.
+		pingTarget := targetID != "" && targetID != i.Member.User.ID
+		if pingTarget {
+			if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: fmt.Sprintf("<@%s>", targetID),
+					AllowedMentions: &discordgo.MessageAllowedMentions{
+						Parse: []discordgo.AllowedMentionType{discordgo.AllowedMentionTypeUsers},
+					},
+				},
+			}); err != nil {
+				log.WithError(err).Error("failed to send ping")
+				return
+			}
 		}
 
 		gifURL, err := fetchGIF.Execute(context.Background(), reactionType)
 		if err != nil {
-			logrus.WithError(err).WithFields(logrus.Fields{
-				"guild_id": i.GuildID,
-				"reaction": reactionType,
-				"command":  "react",
-			}).Error("failed to fetch reaction gif")
-			respondEphemeral(s, i, "Не удалось получить GIF. Попробуйте позже.")
+			log.WithError(err).Error("failed to fetch reaction gif")
+			errMsg := "Не удалось получить GIF. Попробуйте позже."
+			if pingTarget {
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{ //nolint:errcheck
+					Content: &errMsg,
+				})
+			} else {
+				respondEphemeral(s, i, errMsg)
+			}
 			return
 		}
 
 		embed := &discordgo.MessageEmbed{
+			Title: sentence,
 			Color: meta.color,
 			Image: &discordgo.MessageEmbedImage{URL: gifURL},
 		}
 
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: sentence,
-				Embeds:  []*discordgo.MessageEmbed{embed},
-				AllowedMentions: &discordgo.MessageAllowedMentions{
-					Parse: []discordgo.AllowedMentionType{discordgo.AllowedMentionTypeUsers},
+		if pingTarget {
+			empty := ""
+			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{ //nolint:errcheck
+				Content: &empty,
+				Embeds:  &[]*discordgo.MessageEmbed{embed},
+			})
+		} else {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Embeds: []*discordgo.MessageEmbed{embed},
 				},
-			},
-		})
+			})
+		}
 	}
 
 	return cmd, handler
+}
+
+// displayName returns the best available display name for a guild member.
+func displayName(m *discordgo.Member) string {
+	if m.Nick != "" {
+		return m.Nick
+	}
+	if m.User != nil {
+		if m.User.GlobalName != "" {
+			return m.User.GlobalName
+		}
+		return m.User.Username
+	}
+	return "кто-то"
 }
