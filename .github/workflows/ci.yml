@@ -96,26 +96,16 @@ jobs:
             export IMAGE_TAG=${{ needs.build.outputs.image_tag }}
             mkdir -p /opt/barman/configs
 
-            cat > /opt/barman/docker-compose.yml << EOF
-            services:
-              bot:
-                image: ghcr.io/ak1m1tsu/barman:${IMAGE_TAG}
-                volumes:
-                  - ./configs/config.yaml:/app/configs/config.yaml:ro
-                  - bot-data:/app/data
-                restart: unless-stopped
-            volumes:
-              bot-data:
-            EOF
+            curl -fsSL \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.raw+json" \
+              "https://api.github.com/repos/${{ github.repository }}/contents/docker-compose.prod.yml?ref=${{ github.sha }}" \
+              | IMAGE_TAG="${IMAGE_TAG}" envsubst \
+              > /opt/barman/docker-compose.yml
 
-            cat > /opt/barman/configs/config.yaml << 'EOF'
-            discord:
-              token: "${{ secrets.BOT_TOKEN }}"
-              app_id: "${{ secrets.BOT_APP_ID }}"
-              guild_id: ""
-            database:
-              path: "/app/data/barman.db"
-            EOF
+            printf 'discord:\n  token: "%s"\n  app_id: "%s"\n  guild_id: ""\ndatabase:\n  path: "/app/data/barman.db"\n' \
+              "${{ secrets.BOT_TOKEN }}" "${{ secrets.BOT_APP_ID }}" \
+              > /opt/barman/configs/config.yaml
 
             cd /opt/barman
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
