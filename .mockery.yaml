@@ -15,3 +15,9 @@ packages:
       outpkg: "mockmember"
     interfaces:
       RoleAssigner:
+  github.com/ak1m1tsu/barman/internal/usecase/reaction:
+    config:
+      dir: "mocks/reaction"
+      outpkg: "mockreaction"
+    interfaces:
+      GIFFetcher:

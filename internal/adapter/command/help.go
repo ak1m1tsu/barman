@@ -19,6 +19,7 @@ func NewHelpCommand() (*discordgo.ApplicationCommand, Handler) {
 				{Name: "/autorole set <роль>", Value: "Установить авто-роль (требует ManageRoles)"},
 				{Name: "/autorole remove", Value: "Удалить авто-роль (требует ManageRoles)"},
 				{Name: "/autorole info", Value: "Показать текущую авто-роль (требует ManageRoles)"},
+				{Name: "/react <тип> [пользователь]", Value: "Отправить аниме-реакцию"},
 			},
 		}
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck

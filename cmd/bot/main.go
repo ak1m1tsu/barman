@@ -14,8 +14,10 @@ import (
 	"github.com/ak1m1tsu/barman/internal/infrastructure/config"
 	"github.com/ak1m1tsu/barman/internal/infrastructure/database"
 	"github.com/ak1m1tsu/barman/internal/infrastructure/discord"
+	nekosclient "github.com/ak1m1tsu/barman/internal/infrastructure/nekos"
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 	memberuc "github.com/ak1m1tsu/barman/internal/usecase/member"
+	reactionuc "github.com/ak1m1tsu/barman/internal/usecase/reaction"
 )
 
 func main() {
@@ -54,12 +56,16 @@ func main() {
 	removeAutoRole := guilduc.NewRemoveAutoRole(guildRepo)
 	assignAutoRole := memberuc.NewAssignAutoRole(guildRepo, roleAssigner)
 
+	nekos := nekosclient.NewClient()
+	fetchGIF := reactionuc.NewFetchGIF(nekos)
+
 	// Register commands
 	registry := command.NewRegistry()
 	registry.Register(command.NewPingCommand())
 	registry.Register(command.NewHelpCommand())
 	registry.Register(command.NewUserInfoCommand())
 	registry.Register(command.NewAutoRoleCommand(setAutoRole, getAutoRole, removeAutoRole))
+	registry.Register(command.NewReactCommand(fetchGIF))
 
 	bot.Session.AddHandler(registry.Handle)
 	bot.Session.AddHandler(handler.NewMemberJoinHandler(assignAutoRole))
