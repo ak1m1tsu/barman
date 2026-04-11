@@ -1,5 +1,4 @@
 configs/config.yaml
 *.db
 bin/
-bot
 logs/
