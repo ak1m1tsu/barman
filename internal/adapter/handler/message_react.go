@@ -116,8 +116,7 @@ func NewMessageReactHandler(prefix string, fetchGIF *reactionuc.FetchGIFUseCase)
 		}
 
 		s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
-			Embed:     embed,
-			Reference: msg.Reference(),
+			Embed: embed,
 		})
 	}
 }
