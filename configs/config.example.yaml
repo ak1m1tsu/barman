@@ -1,0 +1,7 @@
+discord:
+  token: "YOUR_BOT_TOKEN"
+  app_id: "YOUR_APP_ID"
+  guild_id: ""  # optional: register commands for one guild only (faster in dev)
+
+database:
+  path: "barman.db"
