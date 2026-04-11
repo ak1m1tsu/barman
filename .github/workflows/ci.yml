@@ -24,7 +24,7 @@ jobs:
         id: tag
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          if [ "${{ github.ref }}" = "refs/heads/master" ]; then
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "tag=${SHORT_SHA}-$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
           else
             BRANCH=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g' | cut -c1-40)
@@ -79,11 +79,11 @@ jobs:
       - name: Run govulncheck
         run: govulncheck ./...
 
-  # ── 5. DEPLOY (master only) ─────────────────────────────────
+  # ── 5. DEPLOY (main only) ─────────────────────────────────
   deploy:
     needs: [lint, test, dependency_check]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
