@@ -16,6 +16,7 @@ type DiscordConfig struct {
 	Token   string `yaml:"token"`
 	AppID   string `yaml:"app_id"`
 	GuildID string `yaml:"guild_id"`
+	Prefix  string `yaml:"prefix"`
 }
 
 type DatabaseConfig struct {
