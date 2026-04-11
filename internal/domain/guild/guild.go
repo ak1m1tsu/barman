@@ -4,4 +4,5 @@ package guild
 type Guild struct {
 	ID         string
 	AutoRoleID string
+	Prefix     string
 }

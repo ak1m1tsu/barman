@@ -22,11 +22,26 @@ func Open(path string) (*sql.DB, error) {
 }
 
 func migrate(db *sql.DB) error {
-	_, err := db.Exec(`
+	if _, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS guild_settings (
 			guild_id     TEXT PRIMARY KEY,
 			auto_role_id TEXT NOT NULL DEFAULT ''
 		)
-	`)
-	return err
+	`); err != nil {
+		return err
+	}
+
+	// Add prefix column if it doesn't exist yet (SQLite has no ADD COLUMN IF NOT EXISTS).
+	if _, err := db.Exec(`ALTER TABLE guild_settings ADD COLUMN prefix TEXT NOT NULL DEFAULT ''`); err != nil {
+		// Ignore "duplicate column name" — migration already applied.
+		if !isDuplicateColumnErr(err) {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func isDuplicateColumnErr(err error) bool {
+	return err != nil && len(err.Error()) >= 22 && err.Error()[:22] == "duplicate column name:"
 }

@@ -19,10 +19,10 @@ func NewGuildRepository(db *sql.DB) *GuildRepository {
 
 func (r *GuildRepository) FindByID(ctx context.Context, guildID string) (*guild.Guild, error) {
 	row := r.db.QueryRowContext(ctx,
-		`SELECT guild_id, auto_role_id FROM guild_settings WHERE guild_id = ?`, guildID)
+		`SELECT guild_id, auto_role_id, prefix FROM guild_settings WHERE guild_id = ?`, guildID)
 
 	g := &guild.Guild{}
-	if err := row.Scan(&g.ID, &g.AutoRoleID); err != nil {
+	if err := row.Scan(&g.ID, &g.AutoRoleID, &g.Prefix); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -33,9 +33,11 @@ func (r *GuildRepository) FindByID(ctx context.Context, guildID string) (*guild.
 
 func (r *GuildRepository) Save(ctx context.Context, g *guild.Guild) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO guild_settings (guild_id, auto_role_id) VALUES (?, ?)
-		 ON CONFLICT(guild_id) DO UPDATE SET auto_role_id = excluded.auto_role_id`,
-		g.ID, g.AutoRoleID)
+		`INSERT INTO guild_settings (guild_id, auto_role_id, prefix) VALUES (?, ?, ?)
+		 ON CONFLICT(guild_id) DO UPDATE SET
+		   auto_role_id = excluded.auto_role_id,
+		   prefix       = excluded.prefix`,
+		g.ID, g.AutoRoleID, g.Prefix)
 	return err
 }
 
