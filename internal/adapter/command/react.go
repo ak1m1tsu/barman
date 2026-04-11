@@ -11,8 +11,8 @@ import (
 )
 
 type reactionMeta struct {
-	withTarget    string // format string: "%s обнимает %s"
-	withoutTarget string // format string: "%s обнимает всех"
+	withTarget    string // "%s обнимает %s"
+	withoutTarget string // "%s обнимает всех"
 	color         int
 }
 
@@ -79,28 +79,18 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFUseCase) (*discordgo.Applicati
 		reactionType := opts[0].StringValue()
 		meta := reactionsMeta[reactionType]
 
-		actorName := displayName(i.Member)
+		actor := fmt.Sprintf("<@%s>", i.Member.User.ID)
 
 		var sentence string
 		if len(opts) > 1 {
 			targetUser := opts[1].UserValue(s)
 			if targetUser.ID == i.Member.User.ID {
-				sentence = fmt.Sprintf(meta.withTarget, actorName, "себя")
+				sentence = fmt.Sprintf(meta.withTarget, actor, "себя")
 			} else {
-				targetMember, err := s.GuildMember(i.GuildID, targetUser.ID)
-				if err != nil {
-					logrus.WithError(err).WithFields(logrus.Fields{
-						"guild_id": i.GuildID,
-						"user_id":  targetUser.ID,
-						"command":  "react " + reactionType,
-					}).Error("failed to fetch target guild member")
-					respondEphemeral(s, i, "Не удалось получить информацию о пользователе.")
-					return
-				}
-				sentence = fmt.Sprintf(meta.withTarget, actorName, displayName(targetMember))
+				sentence = fmt.Sprintf(meta.withTarget, actor, fmt.Sprintf("<@%s>", targetUser.ID))
 			}
 		} else {
-			sentence = fmt.Sprintf(meta.withoutTarget, actorName)
+			sentence = fmt.Sprintf(meta.withoutTarget, actor)
 		}
 
 		gifURL, err := fetchGIF.Execute(context.Background(), reactionType)
@@ -115,7 +105,6 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFUseCase) (*discordgo.Applicati
 		}
 
 		embed := &discordgo.MessageEmbed{
-			Title: sentence,
 			Color: meta.color,
 			Image: &discordgo.MessageEmbedImage{URL: gifURL},
 		}
@@ -123,24 +112,14 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFUseCase) (*discordgo.Applicati
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Embeds: []*discordgo.MessageEmbed{embed},
+				Content: sentence,
+				Embeds:  []*discordgo.MessageEmbed{embed},
+				AllowedMentions: &discordgo.MessageAllowedMentions{
+					Parse: []discordgo.AllowedMentionType{discordgo.AllowedMentionTypeUsers},
+				},
 			},
 		})
 	}
 
 	return cmd, handler
-}
-
-// displayName returns the best available display name for a guild member.
-func displayName(m *discordgo.Member) string {
-	if m.Nick != "" {
-		return m.Nick
-	}
-	if m.User != nil {
-		if m.User.GlobalName != "" {
-			return m.User.GlobalName
-		}
-		return m.User.Username
-	}
-	return "кто-то"
 }
