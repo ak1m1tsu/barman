@@ -94,6 +94,6 @@ func snowflakeToTime(id string) time.Time {
 		return time.Time{}
 	}
 	const discordEpoch = int64(1420070400000)
-	ms := (snowflake>>22) + discordEpoch
+	ms := (snowflake >> 22) + discordEpoch
 	return time.Unix(ms/1000, (ms%1000)*int64(time.Millisecond)).UTC()
 }

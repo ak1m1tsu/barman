@@ -1,4 +1,4 @@
-.PHONY: lint test mock build docker-build up down
+.PHONY: lint test mock build docker-build up down hooks
 
 lint:
 	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint:latest golangci-lint run
@@ -20,3 +20,6 @@ up:
 
 down:
 	docker compose down
+
+hooks:
+	git config core.hooksPath .githooks
