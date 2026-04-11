@@ -1,61 +1,63 @@
 # barman
 
-Discord-бот на Go с Clean Architecture. Управляет авто-ролью при вступлении участников на сервер и предоставляет базовые slash-команды.
+Discord bot written in Go using Clean Architecture. Manages auto-role assignment for new server members and provides basic slash commands.
 
-## Команды
+[Русский](README.ru.md)
 
-| Команда | Описание | Права |
-|---------|----------|-------|
-| `/ping` | Проверить задержку бота | все |
-| `/help` | Список доступных команд | все |
-| `/userinfo [пользователь]` | Информация о пользователе | все |
-| `/autorole set <роль>` | Установить авто-роль для новых участников | Manage Roles |
-| `/autorole remove` | Удалить авто-роль | Manage Roles |
-| `/autorole info` | Показать текущую авто-роль | Manage Roles |
+## Commands
 
-## Быстрый старт
+| Command | Description | Permissions |
+|---------|-------------|-------------|
+| `/ping` | Check bot latency | everyone |
+| `/help` | List available commands | everyone |
+| `/userinfo [user]` | Show user information | everyone |
+| `/autorole set <role>` | Set auto-role for new members | Manage Roles |
+| `/autorole remove` | Remove auto-role | Manage Roles |
+| `/autorole info` | Show current auto-role | Manage Roles |
+
+## Quick Start
 
 ```bash
-# Скопировать шаблон конфига
+# Copy config template
 cp configs/config.example.yaml configs/config.yaml
-# Заполнить token, app_id в configs/config.yaml
+# Fill in token and app_id in configs/config.yaml
 
-# Запустить через Docker Compose
+# Run via Docker Compose
 make up
 
-# Или собрать и запустить напрямую
+# Or build and run directly
 make build
 ./bin/bot --config configs/config.yaml
 ```
 
-## Конфигурация
+## Configuration
 
 ```yaml
 # configs/config.yaml
 discord:
   token: "YOUR_BOT_TOKEN"
   app_id: "YOUR_APP_ID"
-  guild_id: ""        # оставить пустым для глобальных команд
+  guild_id: ""        # leave empty for global commands
 
 database:
-  path: "barman.db"   # путь к SQLite-файлу
+  path: "barman.db"   # path to SQLite file
 ```
 
-`configs/config.yaml` добавлен в `.gitignore` и не попадает в репозиторий.
+`configs/config.yaml` is listed in `.gitignore` and is never committed to the repository.
 
-## Разработка
+## Development
 
 ```bash
-make test          # запустить все тесты
+make test          # run all tests
 make lint          # golangci-lint
-make mock          # пересгенерировать моки (после изменения интерфейсов)
-make build         # собрать бинарь в bin/bot
-make docker-build  # собрать Docker-образ
+make mock          # regenerate mocks (after changing interfaces)
+make build         # build binary to bin/bot
+make docker-build  # build Docker image
 ```
 
-## Архитектура
+## Architecture
 
-Clean Architecture — зависимости направлены строго внутрь:
+Clean Architecture — dependencies point strictly inward:
 
 ```
 infrastructure → adapter → usecase → domain
@@ -63,54 +65,57 @@ infrastructure → adapter → usecase → domain
 
 ```
 internal/
-├── domain/guild/          # сущность Guild, интерфейс Repository
+├── domain/guild/          # Guild entity, Repository interface
 ├── usecase/
 │   ├── guild/             # SetAutoRole, GetAutoRole, RemoveAutoRole
-│   └── member/            # AssignAutoRole, интерфейс RoleAssigner
+│   └── member/            # AssignAutoRole, RoleAssigner interface
 ├── adapter/
-│   ├── command/           # slash-команды (discordgo)
-│   ├── handler/           # обработчик GuildMemberAdd
-│   └── repository/sqlite/ # реализация Repository через SQLite
+│   ├── command/           # slash commands (discordgo)
+│   ├── handler/           # GuildMemberAdd event handler
+│   └── repository/sqlite/ # Repository implementation via SQLite
 └── infrastructure/
-    ├── config/            # загрузка YAML-конфига
-    ├── database/          # открытие SQLite, миграции
+    ├── config/            # YAML config loading
+    ├── database/          # SQLite open & migrations
     └── discord/           # discordgo session, RoleAssigner
 ```
 
-Моки генерируются через [mockery](https://github.com/vektra/mockery) (`make mock`) и закоммичены в репозиторий.
+Mocks are generated via [mockery](https://github.com/vektra/mockery) (`make mock`) and committed to the repository.
 
 ## CI/CD
 
-GitHub Actions pipeline при каждом push:
+GitHub Actions pipeline on every push:
 
 ```
 build → lint ┐
-             ├─ параллельно
+             ├─ parallel
        test  ┤
-             ├─ параллельно
+             ├─ parallel
   dep_check ─┘
-       └── deploy  (только master → VPS по SSH)
+       └── deploy  (main branch only → VPS via SSH)
 ```
 
-- **build** — собирает Docker-образ, пушит в GHCR с тегом `{sha7}-{YYYYMMDD}` (master) или `{branch}-{sha7}` (другие ветки)
+- **build** — builds Docker image, pushes to GHCR tagged `{sha7}-{YYYYMMDD}` (main) or `{branch}-{sha7}` (other branches)
 - **lint** — `golangci-lint`
 - **test** — `go test ./...`
 - **dependency_check** — `govulncheck`
-- **deploy** — `docker compose pull && up -d` на VPS
+- **deploy** — `docker compose pull && up -d` on VPS
 
-### Необходимые секреты репозитория
+### Required Repository Secrets
 
-| Секрет | Описание |
-|--------|----------|
-| `GITHUB_TOKEN` | Встроенный, создавать не нужно |
-| `VPS_HOST` | IP или домен VPS |
-| `VPS_USER` | SSH-пользователь |
-| `SSH_PRIVATE_KEY` | Приватный SSH-ключ |
+| Secret | Description |
+|--------|-------------|
+| `GITHUB_TOKEN` | Built-in, no setup needed |
+| `VPS_HOST` | VPS IP or domain |
+| `VPS_USER` | SSH user |
+| `VPS_PASSWORD` | SSH password |
+| `BOT_TOKEN` | Discord bot token |
+| `BOT_APP_ID` | Discord application ID |
 
-## Стек
+## Stack
 
 - [discordgo](https://github.com/bwmarrin/discordgo) — Discord API
-- [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) — pure Go SQLite (без CGO)
-- [gopkg.in/yaml.v3](https://github.com/go-yaml/yaml) — YAML конфиг
-- [testify](https://github.com/stretchr/testify) + [mockery](https://github.com/vektra/mockery) — тесты и моки
-- [golangci-lint](https://github.com/golangci/golangci-lint) — линтер
+- [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) — pure Go SQLite (no CGO)
+- [gopkg.in/yaml.v3](https://github.com/go-yaml/yaml) — YAML config
+- [testify](https://github.com/stretchr/testify) + [mockery](https://github.com/vektra/mockery) — tests and mocks
+- [golangci-lint](https://github.com/golangci/golangci-lint) — linter
+- [logrus](https://github.com/sirupsen/logrus) — structured JSON logging
