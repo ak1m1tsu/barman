@@ -103,14 +103,9 @@ jobs:
               | IMAGE_TAG="${IMAGE_TAG}" envsubst \
               > /opt/barman/docker-compose.yml
 
-            cat > /opt/barman/configs/config.yaml << 'CONF'
-discord:
-  token: "${{ secrets.BOT_TOKEN }}"
-  app_id: "${{ secrets.BOT_APP_ID }}"
-  guild_id: ""
-database:
-  path: "/app/data/barman.db"
-CONF
+            printf 'discord:\n  token: "%s"\n  app_id: "%s"\n  guild_id: ""\ndatabase:\n  path: "/app/data/barman.db"\n' \
+              "${{ secrets.BOT_TOKEN }}" "${{ secrets.BOT_APP_ID }}" \
+              > /opt/barman/configs/config.yaml
 
             cd /opt/barman
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
