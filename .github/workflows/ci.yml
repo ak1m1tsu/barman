@@ -95,6 +95,19 @@ jobs:
           script: |
             export IMAGE_TAG=${{ needs.build.outputs.image_tag }}
             mkdir -p /opt/barman/configs
+
+            cat > /opt/barman/docker-compose.yml << EOF
+            services:
+              bot:
+                image: ghcr.io/ak1m1tsu/barman:${IMAGE_TAG}
+                volumes:
+                  - ./configs/config.yaml:/app/configs/config.yaml:ro
+                  - bot-data:/app/data
+                restart: unless-stopped
+            volumes:
+              bot-data:
+            EOF
+
             cat > /opt/barman/configs/config.yaml << 'EOF'
             discord:
               token: "${{ secrets.BOT_TOKEN }}"
@@ -103,6 +116,7 @@ jobs:
             database:
               path: "/app/data/barman.db"
             EOF
+
             cd /opt/barman
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
             docker compose pull
