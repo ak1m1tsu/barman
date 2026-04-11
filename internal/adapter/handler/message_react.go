@@ -115,33 +115,10 @@ func NewMessageReactHandler(prefix string, fetchGIF *reactionuc.FetchGIFUseCase)
 			Image: &discordgo.MessageEmbedImage{URL: gifURL},
 		}
 
-		// When targeting someone else: ping them first, then edit to embed
-		pingTarget := targetID != "" && targetID != msg.Author.ID
-		if pingTarget {
-			sent, err := s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{
-				Content: fmt.Sprintf("<@%s>", targetID),
-				AllowedMentions: &discordgo.MessageAllowedMentions{
-					Parse: []discordgo.AllowedMentionType{discordgo.AllowedMentionTypeUsers},
-				},
-				Reference: msg.Reference(),
-			})
-			if err != nil {
-				log.WithError(err).Error("failed to send ping")
-				return
-			}
-			empty := ""
-			s.ChannelMessageEditComplex(&discordgo.MessageEdit{ //nolint:errcheck
-				ID:      sent.ID,
-				Channel: msg.ChannelID,
-				Content: &empty,
-				Embeds:  &[]*discordgo.MessageEmbed{embed},
-			})
-		} else {
-			s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
-				Embed:     embed,
-				Reference: msg.Reference(),
-			})
-		}
+		s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
+			Embed:     embed,
+			Reference: msg.Reference(),
+		})
 	}
 }
 
