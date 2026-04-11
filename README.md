@@ -14,6 +14,7 @@ Discord bot written in Go using Clean Architecture. Manages auto-role assignment
 | `/autorole set <role>` | Set auto-role for new members | Manage Roles |
 | `/autorole remove` | Remove auto-role | Manage Roles |
 | `/autorole info` | Show current auto-role | Manage Roles |
+| `/react <type> [user]` | Send an anime reaction GIF | everyone |
 
 ## Quick Start
 
@@ -68,7 +69,8 @@ internal/
 ├── domain/guild/          # Guild entity, Repository interface
 ├── usecase/
 │   ├── guild/             # SetAutoRole, GetAutoRole, RemoveAutoRole
-│   └── member/            # AssignAutoRole, RoleAssigner interface
+│   ├── member/            # AssignAutoRole, RoleAssigner interface
+│   └── reaction/          # FetchGIFUseCase, GIFFetcher interface
 ├── adapter/
 │   ├── command/           # slash commands (discordgo)
 │   ├── handler/           # GuildMemberAdd event handler
@@ -76,7 +78,8 @@ internal/
 └── infrastructure/
     ├── config/            # YAML config loading
     ├── database/          # SQLite open & migrations
-    └── discord/           # discordgo session, RoleAssigner
+    ├── discord/           # discordgo session, RoleAssigner
+    └── nekos/             # nekos.best HTTP client
 ```
 
 Mocks are generated via [mockery](https://github.com/vektra/mockery) (`make mock`) and committed to the repository.
@@ -119,3 +122,4 @@ build → lint ┐
 - [testify](https://github.com/stretchr/testify) + [mockery](https://github.com/vektra/mockery) — tests and mocks
 - [golangci-lint](https://github.com/golangci/golangci-lint) — linter
 - [logrus](https://github.com/sirupsen/logrus) — structured JSON logging
+- [nekos.best](https://nekos.best) — anime reaction GIFs API
