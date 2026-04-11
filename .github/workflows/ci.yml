@@ -81,7 +81,7 @@ jobs:
 
   # ── 5. DEPLOY (main only) ─────────────────────────────────
   deploy:
-    needs: [lint, test, dependency_check]
+    needs: [build, lint, test, dependency_check]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
