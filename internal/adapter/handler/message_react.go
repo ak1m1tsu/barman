@@ -36,8 +36,14 @@ var msgReactions = map[string]msgReactionMeta{
 	"punch":     {"%s бьёт %s", "%s бьёт всех", 0xFF4444},
 }
 
-// NewMessageReactHandler handles prefix-based react commands (e.g. "!react hug").
-// When the command message is a reply, the target is the author of the replied-to message.
+// NewMessageReactHandler handles prefix-based react commands.
+// Supported formats:
+//
+//	!react <type>           — no target
+//	!react <type> <@user>   — explicit mention target
+//	!react <type>           — when used as a reply, target is the replied-to author
+//
+// Priority: explicit mention > reply context > no target.
 func NewMessageReactHandler(prefix string, fetchGIF *reactionuc.FetchGIFUseCase) func(*discordgo.Session, *discordgo.MessageCreate) {
 	trigger := prefix + "react "
 
@@ -49,7 +55,10 @@ func NewMessageReactHandler(prefix string, fetchGIF *reactionuc.FetchGIFUseCase)
 			return
 		}
 
-		reactionType := strings.TrimSpace(strings.TrimPrefix(msg.Content, trigger))
+		remainder := strings.TrimSpace(strings.TrimPrefix(msg.Content, trigger))
+		parts := strings.SplitN(remainder, " ", 2)
+
+		reactionType := parts[0]
 		meta, ok := msgReactions[reactionType]
 		if !ok {
 			return
@@ -71,10 +80,28 @@ func NewMessageReactHandler(prefix string, fetchGIF *reactionuc.FetchGIFUseCase)
 		}
 		actor := memberDisplayName(actorMember)
 
-		// Resolve target from reply context
+		// Resolve target: explicit mention > reply context > none
 		var targetID string
 		var targetName string
-		if msg.MessageReference != nil {
+
+		if len(parts) == 2 {
+			targetID = parseMention(parts[1])
+		}
+
+		if targetID != "" {
+			// Explicit mention
+			if targetID == msg.Author.ID {
+				targetName = "себя"
+			} else {
+				targetMember, err := s.GuildMember(msg.GuildID, targetID)
+				if err != nil {
+					log.WithError(err).Error("failed to fetch target guild member")
+					return
+				}
+				targetName = memberDisplayName(targetMember)
+			}
+		} else if msg.MessageReference != nil {
+			// Fall back to reply context
 			refMsg, err := s.ChannelMessage(msg.ChannelID, msg.MessageReference.MessageID)
 			if err != nil {
 				log.WithError(err).Error("failed to fetch referenced message")
@@ -119,6 +146,19 @@ func NewMessageReactHandler(prefix string, fetchGIF *reactionuc.FetchGIFUseCase)
 			Embed: embed,
 		})
 	}
+}
+
+// parseMention extracts a user ID from a Discord mention string (<@userId> or <@!userId>).
+// Returns an empty string if s is not a valid mention.
+func parseMention(s string) string {
+	s = strings.TrimSpace(s)
+	if !strings.HasPrefix(s, "<@") || !strings.HasSuffix(s, ">") {
+		return ""
+	}
+	s = strings.TrimPrefix(s, "<@")
+	s = strings.TrimPrefix(s, "!")
+	s = strings.TrimSuffix(s, ">")
+	return s
 }
 
 // memberDisplayName returns the best available display name for a guild member.
