@@ -34,7 +34,11 @@ func main() {
 	if err != nil {
 		logrus.WithError(err).Fatal("database: failed to open")
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			logrus.WithError(err).Error("database: failed to close")
+		}
+	}()
 
 	bot, err := discord.New(cfg.Discord.Token, cfg.Discord.AppID, cfg.Discord.GuildID)
 	if err != nil {
@@ -63,7 +67,11 @@ func main() {
 	if err := bot.Session.Open(); err != nil {
 		logrus.WithError(err).Fatal("discord: failed to open session")
 	}
-	defer bot.Session.Close()
+	defer func() {
+		if err := bot.Session.Close(); err != nil {
+			logrus.WithError(err).Error("discord: failed to close session")
+		}
+	}()
 
 	// Register slash commands with Discord
 	for _, cmd := range registry.Commands() {

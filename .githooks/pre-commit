@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+export PATH="$PATH:/usr/local/go/bin"
+
+echo "Running tests..."
+go test ./...
+
+echo "Running linter..."
+docker run --rm -v "$(pwd):/app" -w /app golangci/golangci-lint:latest golangci-lint run
