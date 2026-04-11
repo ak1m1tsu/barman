@@ -14,6 +14,7 @@ Discord-бот на Go с Clean Architecture. Управляет авто-рол
 | `/autorole set <роль>` | Установить авто-роль для новых участников | Manage Roles |
 | `/autorole remove` | Удалить авто-роль | Manage Roles |
 | `/autorole info` | Показать текущую авто-роль | Manage Roles |
+| `/react <тип> [пользователь]` | Отправить аниме-реакцию в виде GIF | все |
 
 ## Быстрый старт
 
@@ -68,7 +69,8 @@ internal/
 ├── domain/guild/          # сущность Guild, интерфейс Repository
 ├── usecase/
 │   ├── guild/             # SetAutoRole, GetAutoRole, RemoveAutoRole
-│   └── member/            # AssignAutoRole, интерфейс RoleAssigner
+│   ├── member/            # AssignAutoRole, интерфейс RoleAssigner
+│   └── reaction/          # FetchGIFUseCase, интерфейс GIFFetcher
 ├── adapter/
 │   ├── command/           # slash-команды (discordgo)
 │   ├── handler/           # обработчик GuildMemberAdd
@@ -76,7 +78,8 @@ internal/
 └── infrastructure/
     ├── config/            # загрузка YAML-конфига
     ├── database/          # открытие SQLite, миграции
-    └── discord/           # discordgo session, RoleAssigner
+    ├── discord/           # discordgo session, RoleAssigner
+    └── nekos/             # HTTP клиент nekos.best
 ```
 
 Моки генерируются через [mockery](https://github.com/vektra/mockery) (`make mock`) и закоммичены в репозиторий.
@@ -116,3 +119,4 @@ build → lint ┐
 - [gopkg.in/yaml.v3](https://github.com/go-yaml/yaml) — YAML конфиг
 - [testify](https://github.com/stretchr/testify) + [mockery](https://github.com/vektra/mockery) — тесты и моки
 - [golangci-lint](https://github.com/golangci/golangci-lint) — линтер
+- [nekos.best](https://nekos.best) — API аниме-реакций в формате GIF
