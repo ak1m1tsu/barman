@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/ak1m1tsu/barman/internal/adapter/command"
 	"github.com/ak1m1tsu/barman/internal/adapter/handler"
@@ -18,23 +19,26 @@ import (
 )
 
 func main() {
+	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.SetOutput(os.Stdout)
+
 	configPath := flag.String("config", "configs/config.yaml", "Path to YAML config file")
 	flag.Parse()
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
-		log.Fatalf("config: %v", err)
+		logrus.WithError(err).Fatal("config: failed to load")
 	}
 
 	db, err := database.Open(cfg.Database.Path)
 	if err != nil {
-		log.Fatalf("database: %v", err)
+		logrus.WithError(err).Fatal("database: failed to open")
 	}
 	defer db.Close()
 
 	bot, err := discord.New(cfg.Discord.Token, cfg.Discord.AppID, cfg.Discord.GuildID)
 	if err != nil {
-		log.Fatalf("discord: %v", err)
+		logrus.WithError(err).Fatal("discord: failed to create bot")
 	}
 
 	// Wire dependencies
@@ -57,22 +61,22 @@ func main() {
 	bot.Session.AddHandler(handler.NewMemberJoinHandler(assignAutoRole))
 
 	if err := bot.Session.Open(); err != nil {
-		log.Fatalf("discord: open session: %v", err)
+		logrus.WithError(err).Fatal("discord: failed to open session")
 	}
 	defer bot.Session.Close()
 
 	// Register slash commands with Discord
 	for _, cmd := range registry.Commands() {
 		if _, err := bot.Session.ApplicationCommandCreate(bot.AppID, bot.GuildID, cmd); err != nil {
-			log.Printf("discord: register command %q: %v", cmd.Name, err)
+			logrus.WithError(err).WithField("command", cmd.Name).Error("discord: failed to register command")
 		}
 	}
 
-	log.Println("Bot is running. Press Ctrl+C to stop.")
+	logrus.Info("bot is running")
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
 
-	log.Println("Shutting down...")
+	logrus.Info("shutting down")
 }

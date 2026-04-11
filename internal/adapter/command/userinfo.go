@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/sirupsen/logrus"
 )
 
 func NewUserInfoCommand() (*discordgo.ApplicationCommand, Handler) {
@@ -37,6 +38,11 @@ func NewUserInfoCommand() (*discordgo.ApplicationCommand, Handler) {
 
 		member, err := s.GuildMember(i.GuildID, target.ID)
 		if err != nil {
+			logrus.WithError(err).WithFields(logrus.Fields{
+				"guild_id": i.GuildID,
+				"user_id":  target.ID,
+				"command":  "userinfo",
+			}).Error("failed to fetch guild member")
 			respondEphemeral(s, i, "Не удалось получить информацию о пользователе.")
 			return
 		}

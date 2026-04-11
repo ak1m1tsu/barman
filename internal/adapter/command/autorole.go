@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/sirupsen/logrus"
 
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 )
@@ -57,11 +58,16 @@ func NewAutoRoleCommand(
 
 		subCmd := i.ApplicationCommandData().Options[0]
 		ctx := context.Background()
+		log := logrus.WithFields(logrus.Fields{
+			"guild_id": i.GuildID,
+			"command":  "autorole " + subCmd.Name,
+		})
 
 		switch subCmd.Name {
 		case "set":
 			role := subCmd.Options[0].RoleValue(s, i.GuildID)
 			if err := setUC.Execute(ctx, i.GuildID, role.ID); err != nil {
+				log.WithError(err).Error("failed to set autorole")
 				respond(s, i, "Ошибка при установке авто-роли.")
 				return
 			}
@@ -69,6 +75,7 @@ func NewAutoRoleCommand(
 
 		case "remove":
 			if err := removeUC.Execute(ctx, i.GuildID); err != nil {
+				log.WithError(err).Error("failed to remove autorole")
 				respond(s, i, "Ошибка при удалении авто-роли.")
 				return
 			}
@@ -76,7 +83,12 @@ func NewAutoRoleCommand(
 
 		case "info":
 			g, err := getUC.Execute(ctx, i.GuildID)
-			if err != nil || g == nil || g.AutoRoleID == "" {
+			if err != nil {
+				log.WithError(err).Error("failed to get autorole")
+				respond(s, i, "Ошибка при получении авто-роли.")
+				return
+			}
+			if g == nil || g.AutoRoleID == "" {
 				respond(s, i, "Авто-роль не установлена.")
 				return
 			}
