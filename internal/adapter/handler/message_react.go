@@ -39,23 +39,21 @@ var msgReactions = map[string]msgReactionMeta{
 // NewMessageReactHandler handles prefix-based react commands.
 // Supported formats:
 //
-//	!react <type>           — no target
-//	!react <type> <@user>   — explicit mention target
-//	!react <type>           — when used as a reply, target is the replied-to author
+//	!<type>           — no target
+//	!<type> <@user>   — explicit mention target
+//	!<type>           — when used as a reply, target is the replied-to author
 //
 // Priority: explicit mention > reply context > no target.
 func NewMessageReactHandler(prefix string, fetchGIF *reactionuc.FetchGIFUseCase) func(*discordgo.Session, *discordgo.MessageCreate) {
-	trigger := prefix + "react "
-
 	return func(s *discordgo.Session, msg *discordgo.MessageCreate) {
 		if msg.Author == nil || msg.Author.Bot {
 			return
 		}
-		if !strings.HasPrefix(msg.Content, trigger) {
+		if !strings.HasPrefix(msg.Content, prefix) {
 			return
 		}
 
-		remainder := strings.TrimSpace(strings.TrimPrefix(msg.Content, trigger))
+		remainder := strings.TrimSpace(strings.TrimPrefix(msg.Content, prefix))
 		parts := strings.SplitN(remainder, " ", 2)
 
 		reactionType := parts[0]
