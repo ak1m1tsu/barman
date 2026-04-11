@@ -8,6 +8,9 @@ linters:
     - errcheck
     - govet
     - staticcheck
+
+formatters:
+  enable:
     - gofmt
     - goimports
   settings:
