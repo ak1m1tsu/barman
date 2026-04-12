@@ -1,6 +1,6 @@
 services:
   migrate:
-    image: migrate/migrate
+    image: "ghcr.io/ak1m1tsu/barman-migrate:latest"
     volumes:
       - ./migrations:/migrations:ro
       - bot-data:/app/data
