@@ -34,6 +34,9 @@ func NewAutoRoleInteractionHandler(
 			"custom_id": data.CustomID,
 			"command":   "autorole (interactive)",
 		})
+		if i.Member != nil && i.Member.User != nil {
+			log = log.WithField("user_id", i.Member.User.ID)
+		}
 
 		switch data.CustomID {
 		case autoroleSetButtonID:

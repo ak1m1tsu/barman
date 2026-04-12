@@ -114,6 +114,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFUseCase) (*discordgo.Applicati
 
 		log := logrus.WithFields(logrus.Fields{
 			"guild_id": i.GuildID,
+			"user_id":  i.Member.User.ID,
 			"reaction": reactionType,
 			"command":  "react",
 		})
