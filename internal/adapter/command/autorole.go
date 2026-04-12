@@ -59,6 +59,11 @@ func NewAutoRoleCommand(getUC *guilduc.GetAutoRoleUseCase) (*discordgo.Applicati
 								Style:    discordgo.DangerButton,
 								CustomID: "autorole_remove",
 							},
+							discordgo.Button{
+								Label:    "Отменить",
+								Style:    discordgo.SecondaryButton,
+								CustomID: "autorole_cancel",
+							},
 						},
 					},
 				},
