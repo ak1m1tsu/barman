@@ -13,6 +13,7 @@ import (
 const (
 	autoroleSetButtonID    = "autorole_set"
 	autoroleRemoveButtonID = "autorole_remove"
+	autoroleCancelButtonID = "autorole_cancel"
 	autoroleSelectID       = "autorole_role_select"
 )
 
@@ -52,7 +53,26 @@ func NewAutoRoleInteractionHandler(
 								},
 							},
 						},
+						discordgo.ActionsRow{
+							Components: []discordgo.MessageComponent{
+								discordgo.Button{
+									Label:    "Отменить",
+									Style:    discordgo.SecondaryButton,
+									CustomID: autoroleCancelButtonID,
+								},
+							},
+						},
 					},
+				},
+			})
+
+		case autoroleCancelButtonID:
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+				Type: discordgo.InteractionResponseUpdateMessage,
+				Data: &discordgo.InteractionResponseData{
+					Content:    "Отменено.",
+					Flags:      discordgo.MessageFlagsEphemeral,
+					Components: []discordgo.MessageComponent{},
 				},
 			})
 
@@ -99,6 +119,11 @@ func NewAutoRoleInteractionHandler(
 									Label:    "Удалить",
 									Style:    discordgo.DangerButton,
 									CustomID: autoroleRemoveButtonID,
+								},
+								discordgo.Button{
+									Label:    "Отменить",
+									Style:    discordgo.SecondaryButton,
+									CustomID: autoroleCancelButtonID,
 								},
 							},
 						},
