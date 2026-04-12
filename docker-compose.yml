@@ -1,10 +1,21 @@
 services:
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ./migrations:/migrations:ro
+      - bot-data:/app/data
+    command: ["-path", "/migrations", "-database", "sqlite3:///app/data/barman.db", "up"]
+    restart: "no"
+
   bot:
     build: .
     volumes:
       - ./configs/config.yaml:/app/configs/config.yaml:ro
       - bot-data:/app/data
     restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   bot-data:

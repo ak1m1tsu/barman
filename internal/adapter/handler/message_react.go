@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
+	guilddomain "github.com/ak1m1tsu/barman/internal/domain/guild"
 	reactionuc "github.com/ak1m1tsu/barman/internal/usecase/reaction"
 )
 
@@ -44,11 +45,18 @@ var msgReactions = map[string]msgReactionMeta{
 //	!<type>           — when used as a reply, target is the replied-to author
 //
 // Priority: explicit mention > reply context > no target.
-func NewMessageReactHandler(prefix string, fetchGIF *reactionuc.FetchGIFUseCase) func(*discordgo.Session, *discordgo.MessageCreate) {
+// The guild-specific prefix is fetched at runtime from repo; defaultPrefix is used as fallback.
+func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFUseCase) func(*discordgo.Session, *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, msg *discordgo.MessageCreate) {
 		if msg.Author == nil || msg.Author.Bot {
 			return
 		}
+
+		prefix := defaultPrefix
+		if g, err := repo.FindByID(context.Background(), msg.GuildID); err == nil && g != nil && g.Prefix != "" {
+			prefix = g.Prefix
+		}
+
 		if !strings.HasPrefix(msg.Content, prefix) {
 			return
 		}

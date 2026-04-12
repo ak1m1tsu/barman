@@ -54,6 +54,10 @@ func main() {
 	setAutoRole := guilduc.NewSetAutoRole(guildRepo)
 	getAutoRole := guilduc.NewGetAutoRole(guildRepo)
 	removeAutoRole := guilduc.NewRemoveAutoRole(guildRepo)
+
+	setPrefix := guilduc.NewSetPrefix(guildRepo)
+	getPrefix := guilduc.NewGetPrefix(guildRepo)
+	removePrefix := guilduc.NewRemovePrefix(guildRepo)
 	assignAutoRole := memberuc.NewAssignAutoRole(guildRepo, roleAssigner)
 
 	nekos := nekosclient.NewClient()
@@ -66,15 +70,17 @@ func main() {
 	registry.Register(command.NewUserInfoCommand())
 	registry.Register(command.NewAutoRoleCommand(setAutoRole, getAutoRole, removeAutoRole))
 	registry.Register(command.NewReactCommand(fetchGIF))
+	registry.Register(command.NewPrefixCommand(getPrefix))
 
 	bot.Session.AddHandler(registry.Handle)
 	bot.Session.AddHandler(handler.NewMemberJoinHandler(assignAutoRole))
+	bot.Session.AddHandler(handler.NewPrefixInteractionHandler(setPrefix, removePrefix))
 
-	prefix := cfg.Discord.Prefix
-	if prefix == "" {
-		prefix = "!"
+	defaultPrefix := cfg.Discord.Prefix
+	if defaultPrefix == "" {
+		defaultPrefix = "!"
 	}
-	bot.Session.AddHandler(handler.NewMessageReactHandler(prefix, fetchGIF))
+	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF))
 
 	if err := bot.Session.Open(); err != nil {
 		logrus.WithError(err).Fatal("discord: failed to open session")

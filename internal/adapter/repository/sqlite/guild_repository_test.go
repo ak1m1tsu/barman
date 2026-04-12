@@ -21,7 +21,8 @@ func newTestDB(t *testing.T) *sql.DB {
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS guild_settings (
 			guild_id     TEXT PRIMARY KEY,
-			auto_role_id TEXT NOT NULL DEFAULT ''
+			auto_role_id TEXT NOT NULL DEFAULT '',
+			prefix       TEXT NOT NULL DEFAULT ''
 		)
 	`)
 	require.NoError(t, err)

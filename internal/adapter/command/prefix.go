@@ -1,0 +1,70 @@
+package command
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/bwmarrin/discordgo"
+	"github.com/sirupsen/logrus"
+
+	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
+)
+
+func NewPrefixCommand(getUC *guilduc.GetPrefixUseCase) (*discordgo.ApplicationCommand, Handler) {
+	cmd := &discordgo.ApplicationCommand{
+		Name:        "prefix",
+		Description: "Управление префиксом команд сервера",
+	}
+
+	handler := func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if i.Member == nil {
+			respondEphemeral(s, i, "Команда доступна только на сервере.")
+			return
+		}
+
+		if i.Member.Permissions&discordgo.PermissionManageGuild == 0 {
+			respondEphemeral(s, i, "Недостаточно прав. Требуется право **Управление сервером**.")
+			return
+		}
+
+		prefix, err := getUC.Execute(context.Background(), i.GuildID)
+		if err != nil {
+			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("failed to get prefix")
+			respondEphemeral(s, i, "Ошибка при получении префикса.")
+			return
+		}
+
+		var currentDisplay string
+		if prefix == "" {
+			currentDisplay = "глобальный по умолчанию"
+		} else {
+			currentDisplay = fmt.Sprintf("`%s`", prefix)
+		}
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("Текущий префикс: %s", currentDisplay),
+				Flags:   discordgo.MessageFlagsEphemeral,
+				Components: []discordgo.MessageComponent{
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.Button{
+								Label:    "Изменить",
+								Style:    discordgo.PrimaryButton,
+								CustomID: "prefix_set",
+							},
+							discordgo.Button{
+								Label:    "Сбросить",
+								Style:    discordgo.DangerButton,
+								CustomID: "prefix_reset",
+							},
+						},
+					},
+				},
+			},
+		})
+	}
+
+	return cmd, handler
+}
