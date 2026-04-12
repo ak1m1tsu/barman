@@ -11,9 +11,7 @@ Discord bot written in Go using Clean Architecture. Manages auto-role assignment
 | `/ping` | Check bot latency | everyone |
 | `/help` | List available commands | everyone |
 | `/userinfo [user]` | Show user information | everyone |
-| `/autorole set <role>` | Set auto-role for new members | Manage Roles |
-| `/autorole remove` | Remove auto-role | Manage Roles |
-| `/autorole info` | Show current auto-role | Manage Roles |
+| `/autorole` | Manage auto-role for new members (interactive) | Manage Roles |
 | `/react <type> [user]` | Send an anime reaction GIF | everyone |
 | `/prefix` | View and change the server command prefix (interactive) | Manage Server |
 | `<prefix><type> [@user]` | Send a reaction via prefix (reply auto-targets the replied-to user) | everyone |

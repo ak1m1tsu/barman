@@ -43,6 +43,9 @@ func handlePrefixButton(
 		"guild_id":  i.GuildID,
 		"button_id": data.CustomID,
 	})
+	if i.Member != nil && i.Member.User != nil {
+		log = log.WithField("user_id", i.Member.User.ID)
+	}
 
 	switch data.CustomID {
 	case prefixSetButtonID:
@@ -90,6 +93,9 @@ func handlePrefixModal(
 	}
 
 	log := logrus.WithField("guild_id", i.GuildID)
+	if i.Member != nil && i.Member.User != nil {
+		log = log.WithField("user_id", i.Member.User.ID)
+	}
 
 	prefix := modalTextValue(data.Components, prefixInputID)
 	if prefix == "" {
