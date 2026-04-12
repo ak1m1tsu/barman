@@ -15,6 +15,8 @@ Discord bot written in Go using Clean Architecture. Manages auto-role assignment
 | `/autorole remove` | Remove auto-role | Manage Roles |
 | `/autorole info` | Show current auto-role | Manage Roles |
 | `/react <type> [user]` | Send an anime reaction GIF | everyone |
+| `/prefix` | View and change the server command prefix (interactive) | Manage Server |
+| `<prefix><type> [@user]` | Send a reaction via prefix (reply auto-targets the replied-to user) | everyone |
 
 ## Quick Start
 
@@ -39,6 +41,7 @@ discord:
   token: "YOUR_BOT_TOKEN"
   app_id: "YOUR_APP_ID"
   guild_id: ""        # leave empty for global commands
+  prefix: "!"         # default prefix for message commands
 
 database:
   path: "barman.db"   # path to SQLite file
@@ -68,18 +71,26 @@ infrastructure → adapter → usecase → domain
 internal/
 ├── domain/guild/          # Guild entity, Repository interface
 ├── usecase/
-│   ├── guild/             # SetAutoRole, GetAutoRole, RemoveAutoRole
+│   ├── guild/             # SetAutoRole, GetAutoRole, RemoveAutoRole, SetPrefix, GetPrefix, RemovePrefix
 │   ├── member/            # AssignAutoRole, RoleAssigner interface
 │   └── reaction/          # FetchGIFUseCase, GIFFetcher interface
 ├── adapter/
 │   ├── command/           # slash commands (discordgo)
-│   ├── handler/           # GuildMemberAdd event handler
+│   ├── handler/           # GuildMemberAdd, MessageCreate, interaction handlers
 │   └── repository/sqlite/ # Repository implementation via SQLite
 └── infrastructure/
     ├── config/            # YAML config loading
-    ├── database/          # SQLite open & migrations
+    ├── database/          # SQLite open
     ├── discord/           # discordgo session, RoleAssigner
     └── nekos/             # nekos.best HTTP client
+```
+
+### Database migrations
+
+Migrations live in `migrations/` and are applied manually on the server:
+
+```bash
+sqlite3 barman.db < migrations/000001_init_guild_settings.up.sql
 ```
 
 Mocks are generated via [mockery](https://github.com/vektra/mockery) (`make mock`) and committed to the repository.
@@ -89,19 +100,20 @@ Mocks are generated via [mockery](https://github.com/vektra/mockery) (`make mock
 GitHub Actions pipeline on every push:
 
 ```
-build → lint ┐
-             ├─ parallel
-       test  ┤
-             ├─ parallel
-  dep_check ─┘
-       └── deploy  (main branch only → VPS via SSH)
+build (go build → artifact)
+  ├── lint
+  ├── test
+  └── dependency_check
+        └── docker (builds & pushes image to GHCR)
+                └── deploy  (main branch only → VPS via SSH)
 ```
 
-- **build** — builds Docker image, pushes to GHCR tagged `{sha7}-{YYYYMMDD}` (main) or `{branch}-{sha7}` (other branches)
+- **build** — compiles the binary with `CGO_ENABLED=0`, uploads as a workflow artifact
 - **lint** — `golangci-lint`
 - **test** — `go test ./...`
 - **dependency_check** — `govulncheck`
-- **deploy** — `docker compose pull && up -d` on VPS
+- **docker** — downloads the artifact, builds a minimal Docker image and pushes to GHCR tagged `{sha7}-{YYYYMMDD}` (main) or `{branch}-{sha7}` (other branches)
+- **deploy** — `docker compose pull && down && up -d` on VPS
 
 ### Required Repository Secrets
 

@@ -14,11 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.tag.outputs.tag }}
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
 
       - name: Generate image tag
         id: tag
@@ -31,18 +32,15 @@ jobs:
             echo "tag=${BRANCH}-${SHORT_SHA}" >> $GITHUB_OUTPUT
           fi
 
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build binary
+        run: CGO_ENABLED=0 GOOS=linux go build -o bot ./cmd/bot/
 
-      - uses: docker/build-push-action@v6
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
         with:
-          context: .
-          push: true
-          tags: ${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
-
+          name: bot-binary
+          path: bot
+          retention-days: 1
 
   # ── 2. LINT ─────────────────────────────────────────────────
   lint:
@@ -80,9 +78,39 @@ jobs:
       - name: Run govulncheck
         run: govulncheck ./...
 
-  # ── 5. DEPLOY (main only) ─────────────────────────────────
-  deploy:
+  # ── 5. DOCKER ───────────────────────────────────────────────
+  docker:
     needs: [build, lint, test, dependency_check]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: bot-binary
+
+      - name: Make binary executable
+        run: chmod +x bot
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}:${{ needs.build.outputs.image_tag }}
+
+  # ── 6. DEPLOY (main only) ─────────────────────────────────
+  deploy:
+    needs: [build, docker]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
