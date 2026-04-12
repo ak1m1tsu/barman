@@ -15,6 +15,8 @@ Discord-бот на Go с Clean Architecture. Управляет авто-рол
 | `/autorole remove` | Удалить авто-роль | Manage Roles |
 | `/autorole info` | Показать текущую авто-роль | Manage Roles |
 | `/react <тип> [пользователь]` | Отправить аниме-реакцию в виде GIF | все |
+| `/prefix` | Просмотр и смена префикса команд сервера (интерактивно) | Manage Server |
+| `<префикс><тип> [@пользователь]` | Отправить реакцию через префикс (reply автоматически определяет цель) | все |
 
 ## Быстрый старт
 
@@ -39,6 +41,7 @@ discord:
   token: "YOUR_BOT_TOKEN"
   app_id: "YOUR_APP_ID"
   guild_id: ""        # оставить пустым для глобальных команд
+  prefix: "!"         # префикс по умолчанию для команд через сообщения
 
 database:
   path: "barman.db"   # путь к SQLite-файлу
@@ -68,40 +71,49 @@ infrastructure → adapter → usecase → domain
 internal/
 ├── domain/guild/          # сущность Guild, интерфейс Repository
 ├── usecase/
-│   ├── guild/             # SetAutoRole, GetAutoRole, RemoveAutoRole
+│   ├── guild/             # SetAutoRole, GetAutoRole, RemoveAutoRole, SetPrefix, GetPrefix, RemovePrefix
 │   ├── member/            # AssignAutoRole, интерфейс RoleAssigner
 │   └── reaction/          # FetchGIFUseCase, интерфейс GIFFetcher
 ├── adapter/
 │   ├── command/           # slash-команды (discordgo)
-│   ├── handler/           # обработчик GuildMemberAdd
+│   ├── handler/           # обработчики GuildMemberAdd, MessageCreate, интерактивных компонентов
 │   └── repository/sqlite/ # реализация Repository через SQLite
 └── infrastructure/
     ├── config/            # загрузка YAML-конфига
-    ├── database/          # открытие SQLite, миграции
+    ├── database/          # открытие SQLite
     ├── discord/           # discordgo session, RoleAssigner
     └── nekos/             # HTTP клиент nekos.best
 ```
 
 Моки генерируются через [mockery](https://github.com/vektra/mockery) (`make mock`) и закоммичены в репозиторий.
 
+### Миграции базы данных
+
+Миграции находятся в `migrations/` и применяются вручную на сервере:
+
+```bash
+sqlite3 barman.db < migrations/000001_init_guild_settings.up.sql
+```
+
 ## CI/CD
 
 GitHub Actions pipeline при каждом push:
 
 ```
-build → lint ┐
-             ├─ параллельно
-       test  ┤
-             ├─ параллельно
-  dep_check ─┘
-       └── deploy  (только master → VPS по SSH)
+build (go build → artifact)
+  ├── lint
+  ├── test
+  └── dependency_check
+        └── docker (сборка и публикация образа в GHCR)
+                └── deploy  (только main → VPS по SSH)
 ```
 
-- **build** — собирает Docker-образ, пушит в GHCR с тегом `{sha7}-{YYYYMMDD}` (master) или `{branch}-{sha7}` (другие ветки)
+- **build** — компилирует бинарь с `CGO_ENABLED=0`, сохраняет как artifact
 - **lint** — `golangci-lint`
 - **test** — `go test ./...`
 - **dependency_check** — `govulncheck`
-- **deploy** — `docker compose pull && up -d` на VPS
+- **docker** — скачивает artifact, собирает минимальный Docker-образ и пушит в GHCR с тегом `{sha7}-{YYYYMMDD}` (main) или `{branch}-{sha7}` (другие ветки)
+- **deploy** — `docker compose pull && down && up -d` на VPS
 
 ### Необходимые секреты репозитория
 
@@ -110,7 +122,9 @@ build → lint ┐
 | `GITHUB_TOKEN` | Встроенный, создавать не нужно |
 | `VPS_HOST` | IP или домен VPS |
 | `VPS_USER` | SSH-пользователь |
-| `SSH_PRIVATE_KEY` | Приватный SSH-ключ |
+| `VPS_PASSWORD` | SSH-пароль |
+| `BOT_TOKEN` | Discord bot token |
+| `BOT_APP_ID` | Discord application ID |
 
 ## Стек
 
