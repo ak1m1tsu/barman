@@ -16,11 +16,10 @@ func NewHelpCommand() (*discordgo.ApplicationCommand, Handler) {
 				{Name: "/ping", Value: "Проверить задержку бота"},
 				{Name: "/help", Value: "Показать этот список"},
 				{Name: "/userinfo [пользователь]", Value: "Информация о пользователе"},
-				{Name: "/autorole set <роль>", Value: "Установить авто-роль (требует ManageRoles)"},
-				{Name: "/autorole remove", Value: "Удалить авто-роль (требует ManageRoles)"},
-				{Name: "/autorole info", Value: "Показать текущую авто-роль (требует ManageRoles)"},
+				{Name: "/autorole", Value: "Управление авто-ролью сервера (требует ManageRoles)"},
 				{Name: "/react <тип> [пользователь]", Value: "Отправить аниме-реакцию"},
-				{Name: "!<тип> [@пользователь]", Value: "Отправить реакцию через префикс (в ответ на сообщение — цель определяется автоматически)"},
+				{Name: "/prefix", Value: "Управление префиксом команд сервера (требует ManageServer)"},
+				{Name: "!<тип> [@пользователь]", Value: "Отправить реакцию через префи��с; в reply — цель определяется автоматически"},
 			},
 		}
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck

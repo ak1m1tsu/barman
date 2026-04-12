@@ -68,13 +68,14 @@ func main() {
 	registry.Register(command.NewPingCommand())
 	registry.Register(command.NewHelpCommand())
 	registry.Register(command.NewUserInfoCommand())
-	registry.Register(command.NewAutoRoleCommand(setAutoRole, getAutoRole, removeAutoRole))
+	registry.Register(command.NewAutoRoleCommand(getAutoRole))
 	registry.Register(command.NewReactCommand(fetchGIF))
 	registry.Register(command.NewPrefixCommand(getPrefix))
 
 	bot.Session.AddHandler(registry.Handle)
 	bot.Session.AddHandler(handler.NewMemberJoinHandler(assignAutoRole))
 	bot.Session.AddHandler(handler.NewPrefixInteractionHandler(setPrefix, removePrefix))
+	bot.Session.AddHandler(handler.NewAutoRoleInteractionHandler(setAutoRole, getAutoRole, removeAutoRole))
 
 	defaultPrefix := cfg.Discord.Prefix
 	if defaultPrefix == "" {
