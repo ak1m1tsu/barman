@@ -1,6 +1,8 @@
 services:
   migrate:
-    image: migrate/migrate
+    build:
+      context: .
+      dockerfile: Dockerfile.migrate
     volumes:
       - ./migrations:/migrations:ro
       - bot-data:/app/data

@@ -43,6 +43,13 @@ jobs:
           push: true
           tags: ${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
 
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.migrate
+          push: true
+          tags: ${{ env.IMAGE }}-migrate:latest
+
   # ── 2. LINT ─────────────────────────────────────────────────
   lint:
     needs: build
