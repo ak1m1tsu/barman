@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"math/rand"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -13,7 +14,6 @@ import (
 type reactionMeta struct {
 	withTarget    string // "%s обнимает %s"
 	withoutTarget string // "%s обнимает всех"
-	color         int
 }
 
 var reactionOrder = []string{
@@ -22,22 +22,22 @@ var reactionOrder = []string{
 }
 
 var reactionsMeta = map[string]reactionMeta{
-	"hug":       {"%s обнимает %s", "%s обнимает всех", 0xFF6B9D},
-	"pat":       {"%s гладит %s", "%s гладит всех", 0xFFB347},
-	"kiss":      {"%s целует %s", "%s целует всех", 0xFF85A1},
-	"cuddle":    {"%s прижимается к %s", "%s прижимается ко всем", 0xFFB6C1},
-	"feed":      {"%s кормит %s", "%s кормит всех", 0x98D8C8},
-	"wave":      {"%s машет %s", "%s машет всем", 0x87CEEB},
-	"wink":      {"%s подмигивает %s", "%s подмигивает всем", 0xB0E0E6},
-	"smile":     {"%s улыбается %s", "%s улыбается всем", 0xFFF44F},
-	"highfive":  {"%s даёт пять %s", "%s даёт пять всем", 0xFFD700},
-	"handshake": {"%s жмёт руку %s", "%s жмёт руку всем", 0x98FB98},
-	"poke":      {"%s тыкает %s", "%s тыкает всех", 0xA8D8EA},
-	"tickle":    {"%s щекочет %s", "%s щекочет всех", 0xFFE4B5},
-	"lick":      {"%s лижет %s", "%s лижет всех", 0xDDA0DD},
-	"bite":      {"%s кусает %s", "%s кусает всех", 0xFF6633},
-	"slap":      {"%s даёт пощёчину %s", "%s даёт пощёчину всем", 0xFF4444},
-	"punch":     {"%s бьёт %s", "%s бьёт всех", 0xFF4444},
+	"hug":       {"%s обнимает %s", "%s обнимает всех"},
+	"pat":       {"%s гладит %s", "%s гладит всех"},
+	"kiss":      {"%s целует %s", "%s целует всех"},
+	"cuddle":    {"%s прижимается к %s", "%s прижимается ко всем"},
+	"feed":      {"%s кормит %s", "%s кормит всех"},
+	"wave":      {"%s машет %s", "%s машет всем"},
+	"wink":      {"%s подмигивает %s", "%s подмигивает всем"},
+	"smile":     {"%s улыбается %s", "%s улыбается всем"},
+	"highfive":  {"%s даёт пять %s", "%s даёт пять всем"},
+	"handshake": {"%s жмёт руку %s", "%s жмёт руку всем"},
+	"poke":      {"%s тыкает %s", "%s тыкает всех"},
+	"tickle":    {"%s щекочет %s", "%s щекочет всех"},
+	"lick":      {"%s лижет %s", "%s лижет всех"},
+	"bite":      {"%s кусает %s", "%s кусает всех"},
+	"slap":      {"%s даёт пощёчину %s", "%s даёт пощёчину всем"},
+	"punch":     {"%s бьёт %s", "%s бьёт всех"},
 }
 
 func NewReactCommand(fetchGIF *reactionuc.FetchGIFUseCase) (*discordgo.ApplicationCommand, Handler) {
@@ -153,7 +153,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFUseCase) (*discordgo.Applicati
 
 		embed := &discordgo.MessageEmbed{
 			Title: sentence,
-			Color: meta.color,
+			Color: rand.Intn(0xFFFFFF + 1),
 			Image: &discordgo.MessageEmbedImage{URL: gifURL},
 		}
 
