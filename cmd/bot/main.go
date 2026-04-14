@@ -15,6 +15,7 @@ import (
 	"github.com/ak1m1tsu/barman/internal/infrastructure/database"
 	"github.com/ak1m1tsu/barman/internal/infrastructure/discord"
 	nekosclient "github.com/ak1m1tsu/barman/internal/infrastructure/nekos"
+	otakugifsclient "github.com/ak1m1tsu/barman/internal/infrastructure/otakugifs"
 	cooldownuc "github.com/ak1m1tsu/barman/internal/usecase/cooldown"
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 	memberuc "github.com/ak1m1tsu/barman/internal/usecase/member"
@@ -62,7 +63,8 @@ func main() {
 	assignAutoRole := memberuc.NewAssignAutoRole(guildRepo, roleAssigner)
 
 	nekos := nekosclient.NewClient()
-	fetchGIF := reactionuc.NewFetchGIF(nekos)
+	otakugifs := otakugifsclient.NewClient()
+	fetchGIF := reactionuc.NewFetchGIFWithFallback(nekos, otakugifs)
 
 	cooldownRepo := sqliterepo.NewCooldownRepository(db)
 	checkAndSet := cooldownuc.NewCheckAndSet(cooldownRepo)
@@ -73,6 +75,7 @@ func main() {
 	registry.Register(command.NewHelpCommand())
 	registry.Register(command.NewUserInfoCommand())
 	registry.Register(command.NewAutoRoleCommand(getAutoRole))
+	registry.Register(command.NewReactionsCommand())
 	registry.Register(command.NewReactCommand(fetchGIF, checkAndSet, cfg.Discord.OwnerIDs))
 	registry.Register(command.NewPrefixCommand(getPrefix))
 
