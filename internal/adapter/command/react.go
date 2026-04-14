@@ -206,7 +206,6 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFUseCase, checkAndSet *cooldown
 			botSentence := fmt.Sprintf(meta.withTarget, botName, actor)
 			s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
 				Reference: respMsg.Reference(),
-				Content:   fmt.Sprintf("<@%s>", i.Member.User.ID),
 				Embed: &discordgo.MessageEmbed{
 					Title: botSentence,
 					Color: rand.Intn(0xFFFFFF + 1),

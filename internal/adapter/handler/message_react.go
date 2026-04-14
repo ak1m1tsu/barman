@@ -150,10 +150,9 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 			Image: &discordgo.MessageEmbedImage{URL: gifURL},
 		}
 
-		sentMsg, err := s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{
+		if _, err := s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{
 			Embed: embed,
-		})
-		if err != nil {
+		}); err != nil {
 			log.WithError(err).Error("failed to send reaction embed")
 			return
 		}
@@ -182,8 +181,7 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 			botName := memberDisplayName(&discordgo.Member{User: s.State.User})
 			botSentence := fmt.Sprintf(meta.withTarget, botName, actor)
 			s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
-				Reference: sentMsg.Reference(),
-				Content:   fmt.Sprintf("<@%s>", msg.Author.ID),
+				Reference: msg.Reference(),
 				Embed: &discordgo.MessageEmbed{
 					Title: botSentence,
 					Color: rand.Intn(0xFFFFFF + 1),
