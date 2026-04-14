@@ -3,6 +3,8 @@ discord:
   app_id: "YOUR_APP_ID"
   guild_id: ""  # optional: register commands for one guild only (faster in dev)
   prefix: "!"   # prefix for message-based commands (e.g. !react hug)
+  owner_ids:    # user IDs that bypass reaction cooldown
+    - "324462804939833345"
 
 database:
   path: "barman.db"
