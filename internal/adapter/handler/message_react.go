@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"slices"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
 	guilddomain "github.com/ak1m1tsu/barman/internal/domain/guild"
+	cooldownuc "github.com/ak1m1tsu/barman/internal/usecase/cooldown"
 	reactionuc "github.com/ak1m1tsu/barman/internal/usecase/reaction"
 )
 
@@ -46,7 +48,7 @@ var msgReactions = map[string]msgReactionMeta{
 //
 // Priority: explicit mention > reply context > no target.
 // The guild-specific prefix is fetched at runtime from repo; defaultPrefix is used as fallback.
-func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFUseCase) func(*discordgo.Session, *discordgo.MessageCreate) {
+func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, ownerIDs []string) func(*discordgo.Session, *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, msg *discordgo.MessageCreate) {
 		if msg.Author == nil || msg.Author.Bot {
 			return
@@ -148,9 +150,45 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 			Image: &discordgo.MessageEmbedImage{URL: gifURL},
 		}
 
-		s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
+		if _, err := s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{
 			Embed: embed,
-		})
+		}); err != nil {
+			log.WithError(err).Error("failed to send reaction embed")
+			return
+		}
+
+		// If the target is the bot — respond with the same reaction back.
+		botID := s.State.User.ID
+		if targetID == botID {
+			isOwner := slices.Contains(ownerIDs, msg.Author.ID)
+			if !isOwner {
+				allowed, err := checkAndSet.Execute(context.Background(), msg.Author.ID)
+				if err != nil {
+					log.WithError(err).Error("failed to check reaction cooldown")
+					return
+				}
+				if !allowed {
+					return
+				}
+			}
+
+			botGIF, err := fetchGIF.Execute(context.Background(), reactionType)
+			if err != nil {
+				log.WithError(err).Error("failed to fetch bot reaction gif")
+				return
+			}
+
+			botName := memberDisplayName(&discordgo.Member{User: s.State.User})
+			botSentence := fmt.Sprintf(meta.withTarget, botName, actor)
+			s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
+				Reference: msg.Reference(),
+				Embed: &discordgo.MessageEmbed{
+					Title: botSentence,
+					Color: rand.Intn(0xFFFFFF + 1),
+					Image: &discordgo.MessageEmbedImage{URL: botGIF},
+				},
+			})
+		}
 	}
 }
 
