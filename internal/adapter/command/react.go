@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"slices"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -41,7 +42,7 @@ var reactionsMeta = map[string]reactionMeta{
 	"punch":     {"%s бьёт %s", "%s бьёт всех"},
 }
 
-func NewReactCommand(fetchGIF *reactionuc.FetchGIFUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase) (*discordgo.ApplicationCommand, Handler) {
+func NewReactCommand(fetchGIF *reactionuc.FetchGIFUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, ownerIDs []string) (*discordgo.ApplicationCommand, Handler) {
 	choices := make([]*discordgo.ApplicationCommandOptionChoice, 0, len(reactionOrder))
 	for _, key := range reactionOrder {
 		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
@@ -176,13 +177,16 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFUseCase, checkAndSet *cooldown
 		// If the target is the bot — respond with the same reaction back.
 		botID := s.State.User.ID
 		if targetID == botID {
-			allowed, err := checkAndSet.Execute(context.Background(), i.Member.User.ID)
-			if err != nil {
-				log.WithError(err).Error("failed to check reaction cooldown")
-				return
-			}
-			if !allowed {
-				return
+			isOwner := slices.Contains(ownerIDs, i.Member.User.ID)
+			if !isOwner {
+				allowed, err := checkAndSet.Execute(context.Background(), i.Member.User.ID)
+				if err != nil {
+					log.WithError(err).Error("failed to check reaction cooldown")
+					return
+				}
+				if !allowed {
+					return
+				}
 			}
 
 			botGIF, err := fetchGIF.Execute(context.Background(), reactionType)
@@ -191,10 +195,18 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFUseCase, checkAndSet *cooldown
 				return
 			}
 
+			// Fetch the original interaction response to reply to it.
+			respMsg, err := s.InteractionResponse(i.Interaction)
+			if err != nil {
+				log.WithError(err).Error("failed to fetch interaction response")
+				return
+			}
+
 			botName := displayName(&discordgo.Member{User: s.State.User})
 			botSentence := fmt.Sprintf(meta.withTarget, botName, actor)
 			s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
-				Content: fmt.Sprintf("<@%s>", i.Member.User.ID),
+				Reference: respMsg.Reference(),
+				Content:   fmt.Sprintf("<@%s>", i.Member.User.ID),
 				Embed: &discordgo.MessageEmbed{
 					Title: botSentence,
 					Color: rand.Intn(0xFFFFFF + 1),

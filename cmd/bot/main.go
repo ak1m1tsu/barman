@@ -73,7 +73,7 @@ func main() {
 	registry.Register(command.NewHelpCommand())
 	registry.Register(command.NewUserInfoCommand())
 	registry.Register(command.NewAutoRoleCommand(getAutoRole))
-	registry.Register(command.NewReactCommand(fetchGIF, checkAndSet))
+	registry.Register(command.NewReactCommand(fetchGIF, checkAndSet, cfg.Discord.OwnerIDs))
 	registry.Register(command.NewPrefixCommand(getPrefix))
 
 	bot.Session.AddHandler(registry.Handle)
@@ -85,7 +85,7 @@ func main() {
 	if defaultPrefix == "" {
 		defaultPrefix = "!"
 	}
-	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF, checkAndSet))
+	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF, checkAndSet, cfg.Discord.OwnerIDs))
 
 	if err := bot.Session.Open(); err != nil {
 		logrus.WithError(err).Fatal("discord: failed to open session")

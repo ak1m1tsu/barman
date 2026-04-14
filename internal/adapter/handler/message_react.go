@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"slices"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -47,7 +48,7 @@ var msgReactions = map[string]msgReactionMeta{
 //
 // Priority: explicit mention > reply context > no target.
 // The guild-specific prefix is fetched at runtime from repo; defaultPrefix is used as fallback.
-func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase) func(*discordgo.Session, *discordgo.MessageCreate) {
+func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, ownerIDs []string) func(*discordgo.Session, *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, msg *discordgo.MessageCreate) {
 		if msg.Author == nil || msg.Author.Bot {
 			return
@@ -149,20 +150,27 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 			Image: &discordgo.MessageEmbedImage{URL: gifURL},
 		}
 
-		s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
+		sentMsg, err := s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{
 			Embed: embed,
 		})
+		if err != nil {
+			log.WithError(err).Error("failed to send reaction embed")
+			return
+		}
 
 		// If the target is the bot — respond with the same reaction back.
 		botID := s.State.User.ID
 		if targetID == botID {
-			allowed, err := checkAndSet.Execute(context.Background(), msg.Author.ID)
-			if err != nil {
-				log.WithError(err).Error("failed to check reaction cooldown")
-				return
-			}
-			if !allowed {
-				return
+			isOwner := slices.Contains(ownerIDs, msg.Author.ID)
+			if !isOwner {
+				allowed, err := checkAndSet.Execute(context.Background(), msg.Author.ID)
+				if err != nil {
+					log.WithError(err).Error("failed to check reaction cooldown")
+					return
+				}
+				if !allowed {
+					return
+				}
 			}
 
 			botGIF, err := fetchGIF.Execute(context.Background(), reactionType)
@@ -174,7 +182,8 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 			botName := memberDisplayName(&discordgo.Member{User: s.State.User})
 			botSentence := fmt.Sprintf(meta.withTarget, botName, actor)
 			s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
-				Content: fmt.Sprintf("<@%s>", msg.Author.ID),
+				Reference: sentMsg.Reference(),
+				Content:   fmt.Sprintf("<@%s>", msg.Author.ID),
 				Embed: &discordgo.MessageEmbed{
 					Title: botSentence,
 					Color: rand.Intn(0xFFFFFF + 1),
