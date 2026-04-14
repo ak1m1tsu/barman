@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-Discord-бот на Go с Clean Architecture. Управляет авто-ролью при вступлении участников на сервер и предоставляет базовые slash-команды.
+Discord-бот на Go с Clean Architecture. Управляет авто-ролью при вступлении участников на сервер, предоставляет slash-команды и отправляет аниме-реакции в виде GIF (25 типов) — источником служит nekos.best с параллельным fallback через otakugifs.xyz.
 
 ## Команды
 
@@ -13,6 +13,7 @@ Discord-бот на Go с Clean Architecture. Управляет авто-рол
 | `/userinfo [пользователь]` | Информация о пользователе | все |
 | `/autorole` | Управление авто-ролью для новых участников (интерактивно) | Manage Roles |
 | `/react <тип> [пользователь]` | Отправить аниме-реакцию в виде GIF | все |
+| `/reactions` | Список доступных типов реакций | все |
 | `/prefix` | Просмотр и смена префикса команд сервера (интерактивно) | Manage Server |
 | `<префикс><тип> [@пользователь]` | Отправить реакцию через префикс (reply автоматически определяет цель) | все |
 
@@ -71,7 +72,7 @@ internal/
 ├── usecase/
 │   ├── guild/             # SetAutoRole, GetAutoRole, RemoveAutoRole, SetPrefix, GetPrefix, RemovePrefix
 │   ├── member/            # AssignAutoRole, интерфейс RoleAssigner
-│   └── reaction/          # FetchGIFUseCase, интерфейс GIFFetcher
+│   └── reaction/          # FetchGIFUseCase, FetchGIFWithFallbackUseCase, интерфейсы GIFFetcher/GIFExecutor
 ├── adapter/
 │   ├── command/           # slash-команды (discordgo)
 │   ├── handler/           # обработчики GuildMemberAdd, MessageCreate, интерактивных компонентов
@@ -80,7 +81,8 @@ internal/
     ├── config/            # загрузка YAML-конфига
     ├── database/          # открытие SQLite
     ├── discord/           # discordgo session, RoleAssigner
-    └── nekos/             # HTTP клиент nekos.best
+    ├── nekos/             # HTTP клиент nekos.best (основной источник GIF)
+    └── otakugifs/         # HTTP клиент otakugifs.xyz (fallback источник GIF)
 ```
 
 Моки генерируются через [mockery](https://github.com/vektra/mockery) (`make mock`) и закоммичены в репозиторий.
@@ -131,4 +133,5 @@ build (go build → artifact)
 - [gopkg.in/yaml.v3](https://github.com/go-yaml/yaml) — YAML конфиг
 - [testify](https://github.com/stretchr/testify) + [mockery](https://github.com/vektra/mockery) — тесты и моки
 - [golangci-lint](https://github.com/golangci/golangci-lint) — линтер
-- [nekos.best](https://nekos.best) — API аниме-реакций в формате GIF
+- [nekos.best](https://nekos.best) — основной API аниме-реакций в формате GIF
+- [otakugifs.xyz](https://otakugifs.xyz) — fallback API аниме-реакций в формате GIF

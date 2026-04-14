@@ -1,6 +1,6 @@
 # barman
 
-Discord bot written in Go using Clean Architecture. Manages auto-role assignment for new server members and provides basic slash commands.
+Discord bot written in Go using Clean Architecture. Manages auto-role assignment for new server members, provides slash commands, and sends anime reaction GIFs (25 reaction types) sourced from nekos.best with otakugifs.xyz as a parallel fallback.
 
 [Русский](README.ru.md)
 
@@ -13,6 +13,7 @@ Discord bot written in Go using Clean Architecture. Manages auto-role assignment
 | `/userinfo [user]` | Show user information | everyone |
 | `/autorole` | Manage auto-role for new members (interactive) | Manage Roles |
 | `/react <type> [user]` | Send an anime reaction GIF | everyone |
+| `/reactions` | List all available reaction types | everyone |
 | `/prefix` | View and change the server command prefix (interactive) | Manage Server |
 | `<prefix><type> [@user]` | Send a reaction via prefix (reply auto-targets the replied-to user) | everyone |
 
@@ -71,7 +72,7 @@ internal/
 ├── usecase/
 │   ├── guild/             # SetAutoRole, GetAutoRole, RemoveAutoRole, SetPrefix, GetPrefix, RemovePrefix
 │   ├── member/            # AssignAutoRole, RoleAssigner interface
-│   └── reaction/          # FetchGIFUseCase, GIFFetcher interface
+│   └── reaction/          # FetchGIFUseCase, FetchGIFWithFallbackUseCase, GIFFetcher/GIFExecutor interfaces
 ├── adapter/
 │   ├── command/           # slash commands (discordgo)
 │   ├── handler/           # GuildMemberAdd, MessageCreate, interaction handlers
@@ -80,7 +81,8 @@ internal/
     ├── config/            # YAML config loading
     ├── database/          # SQLite open
     ├── discord/           # discordgo session, RoleAssigner
-    └── nekos/             # nekos.best HTTP client
+    ├── nekos/             # nekos.best HTTP client (primary GIF source)
+    └── otakugifs/         # otakugifs.xyz HTTP client (fallback GIF source)
 ```
 
 ### Database migrations
@@ -132,4 +134,5 @@ build (go build → artifact)
 - [testify](https://github.com/stretchr/testify) + [mockery](https://github.com/vektra/mockery) — tests and mocks
 - [golangci-lint](https://github.com/golangci/golangci-lint) — linter
 - [logrus](https://github.com/sirupsen/logrus) — structured JSON logging
-- [nekos.best](https://nekos.best) — anime reaction GIFs API
+- [nekos.best](https://nekos.best) — primary anime reaction GIFs API
+- [otakugifs.xyz](https://otakugifs.xyz) — fallback anime reaction GIFs API
