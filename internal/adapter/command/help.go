@@ -18,6 +18,7 @@ func NewHelpCommand() (*discordgo.ApplicationCommand, Handler) {
 				{Name: "/userinfo [пользователь]", Value: "Информация о пользователе"},
 				{Name: "/autorole", Value: "Управление авто-ролью сервера (требует ManageRoles)"},
 				{Name: "/react <тип> [пользователь]", Value: "Отправить аниме-реакцию"},
+				{Name: "/reactions", Value: "Список доступных типов реакций"},
 				{Name: "/prefix", Value: "Управление префиксом команд сервера (требует ManageServer)"},
 				{Name: "!<тип> [@пользователь]", Value: "Отправить реакцию через префи��с; в reply — цель определяется автоматически"},
 			},

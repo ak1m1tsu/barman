@@ -72,6 +72,7 @@ func main() {
 	registry.Register(command.NewUserInfoCommand())
 	registry.Register(command.NewAutoRoleCommand(getAutoRole))
 	registry.Register(command.NewReactCommand(fetchGIF))
+	registry.Register(command.NewReactionsCommand())
 	registry.Register(command.NewPrefixCommand(getPrefix))
 
 	bot.Session.AddHandler(registry.Handle)
