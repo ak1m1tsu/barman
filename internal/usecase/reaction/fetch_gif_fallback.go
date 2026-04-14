@@ -25,15 +25,19 @@ func (uc *FetchGIFWithFallbackUseCase) Execute(ctx context.Context, reaction str
 	go func() {
 		url, err := uc.primary.Fetch(ctx, reaction)
 		primaryCh <- res{url, err}
+		close(primaryCh)
 	}()
 	go func() {
 		url, err := uc.fallback.Fetch(ctx, reaction)
 		fallbackCh <- res{url, err}
+		close(fallbackCh)
 	}()
 
-	if r := <-primaryCh; r.err == nil {
-		return r.url, nil
+	primaryRes := <-primaryCh
+	fallbackRes := <-fallbackCh
+
+	if primaryRes.err == nil {
+		return primaryRes.url, nil
 	}
-	r := <-fallbackCh
-	return r.url, r.err
+	return fallbackRes.url, fallbackRes.err
 }

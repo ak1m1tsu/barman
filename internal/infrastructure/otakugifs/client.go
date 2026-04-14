@@ -12,16 +12,22 @@ const baseURL = "https://api.otakugifs.xyz/gif?reaction="
 
 // Client fetches reaction GIFs from api.otakugifs.xyz.
 type Client struct {
-	http *http.Client
+	http    *http.Client
+	baseURL string
 }
 
 func NewClient() *Client {
-	return &Client{http: &http.Client{Timeout: 5 * time.Second}}
+	return &Client{http: &http.Client{Timeout: 5 * time.Second}, baseURL: baseURL}
+}
+
+// NewClientWithBaseURL creates a client with a custom base URL (for testing).
+func NewClientWithBaseURL(url string) *Client {
+	return &Client{http: &http.Client{Timeout: 5 * time.Second}, baseURL: url}
 }
 
 // Fetch returns a GIF URL for the given reaction type.
 func (c *Client) Fetch(ctx context.Context, reaction string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+reaction, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+reaction, nil)
 	if err != nil {
 		return "", fmt.Errorf("otakugifs: build request: %w", err)
 	}
