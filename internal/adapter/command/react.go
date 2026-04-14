@@ -19,6 +19,7 @@ type reactionMeta struct {
 var reactionOrder = []string{
 	"hug", "pat", "kiss", "cuddle", "feed", "wave", "wink", "smile",
 	"highfive", "handshake", "poke", "tickle", "lick", "bite", "slap", "punch",
+	"love", "nuzzle", "shy", "nervous", "nosebleed", "brofist", "headbang", "sad", "peek",
 }
 
 var reactionsMeta = map[string]reactionMeta{
@@ -38,9 +39,18 @@ var reactionsMeta = map[string]reactionMeta{
 	"bite":      {"%s кусает %s", "%s кусает всех"},
 	"slap":      {"%s даёт пощёчину %s", "%s даёт пощёчину всем"},
 	"punch":     {"%s бьёт %s", "%s бьёт всех"},
+	"love":      {"%s любит %s", "%s любит всех"},
+	"nuzzle":    {"%s тыкается носом в %s", "%s тыкается носом"},
+	"shy":       {"%s стесняется перед %s", "%s стесняется"},
+	"nervous":   {"%s нервничает перед %s", "%s нервничает"},
+	"nosebleed": {"%s краснеет от %s", "%s краснеет"},
+	"brofist":   {"%s бьёт кулаком %s", "%s бьёт кулаком"},
+	"headbang":  {"%s хэдбэнгит с %s", "%s хэдбэнгит"},
+	"sad":       {"%s грустит с %s", "%s грустит"},
+	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
 }
 
-func NewReactCommand(fetchGIF *reactionuc.FetchGIFUseCase) (*discordgo.ApplicationCommand, Handler) {
+func NewReactCommand(fetchGIF reactionuc.GIFExecutor) (*discordgo.ApplicationCommand, Handler) {
 	choices := make([]*discordgo.ApplicationCommandOptionChoice, 0, len(reactionOrder))
 	for _, key := range reactionOrder {
 		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{

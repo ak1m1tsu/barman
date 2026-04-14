@@ -15,6 +15,7 @@ import (
 	"github.com/ak1m1tsu/barman/internal/infrastructure/database"
 	"github.com/ak1m1tsu/barman/internal/infrastructure/discord"
 	nekosclient "github.com/ak1m1tsu/barman/internal/infrastructure/nekos"
+	otakugifsclient "github.com/ak1m1tsu/barman/internal/infrastructure/otakugifs"
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 	memberuc "github.com/ak1m1tsu/barman/internal/usecase/member"
 	reactionuc "github.com/ak1m1tsu/barman/internal/usecase/reaction"
@@ -61,7 +62,8 @@ func main() {
 	assignAutoRole := memberuc.NewAssignAutoRole(guildRepo, roleAssigner)
 
 	nekos := nekosclient.NewClient()
-	fetchGIF := reactionuc.NewFetchGIF(nekos)
+	otakugifs := otakugifsclient.NewClient()
+	fetchGIF := reactionuc.NewFetchGIFWithFallback(nekos, otakugifs)
 
 	// Register commands
 	registry := command.NewRegistry()

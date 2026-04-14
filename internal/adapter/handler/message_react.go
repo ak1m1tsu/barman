@@ -35,6 +35,15 @@ var msgReactions = map[string]msgReactionMeta{
 	"bite":      {"%s кусает %s", "%s кусает всех"},
 	"slap":      {"%s даёт пощёчину %s", "%s даёт пощёчину всем"},
 	"punch":     {"%s бьёт %s", "%s бьёт всех"},
+	"love":      {"%s любит %s", "%s любит всех"},
+	"nuzzle":    {"%s тыкается носом в %s", "%s тыкается носом"},
+	"shy":       {"%s стесняется перед %s", "%s стесняется"},
+	"nervous":   {"%s нервничает перед %s", "%s нервничает"},
+	"nosebleed": {"%s краснеет от %s", "%s краснеет"},
+	"brofist":   {"%s бьёт кулаком %s", "%s бьёт кулаком"},
+	"headbang":  {"%s хэдбэнгит с %s", "%s хэдбэнгит"},
+	"sad":       {"%s грустит с %s", "%s грустит"},
+	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
 }
 
 // NewMessageReactHandler handles prefix-based react commands.
@@ -46,7 +55,7 @@ var msgReactions = map[string]msgReactionMeta{
 //
 // Priority: explicit mention > reply context > no target.
 // The guild-specific prefix is fetched at runtime from repo; defaultPrefix is used as fallback.
-func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFUseCase) func(*discordgo.Session, *discordgo.MessageCreate) {
+func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF reactionuc.GIFExecutor) func(*discordgo.Session, *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, msg *discordgo.MessageCreate) {
 		if msg.Author == nil || msg.Author.Bot {
 			return
