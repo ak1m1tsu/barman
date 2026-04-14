@@ -15,6 +15,7 @@ import (
 	"github.com/ak1m1tsu/barman/internal/infrastructure/database"
 	"github.com/ak1m1tsu/barman/internal/infrastructure/discord"
 	nekosclient "github.com/ak1m1tsu/barman/internal/infrastructure/nekos"
+	cooldownuc "github.com/ak1m1tsu/barman/internal/usecase/cooldown"
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 	memberuc "github.com/ak1m1tsu/barman/internal/usecase/member"
 	reactionuc "github.com/ak1m1tsu/barman/internal/usecase/reaction"
@@ -63,13 +64,16 @@ func main() {
 	nekos := nekosclient.NewClient()
 	fetchGIF := reactionuc.NewFetchGIF(nekos)
 
+	cooldownRepo := sqliterepo.NewCooldownRepository(db)
+	checkAndSet := cooldownuc.NewCheckAndSet(cooldownRepo)
+
 	// Register commands
 	registry := command.NewRegistry()
 	registry.Register(command.NewPingCommand())
 	registry.Register(command.NewHelpCommand())
 	registry.Register(command.NewUserInfoCommand())
 	registry.Register(command.NewAutoRoleCommand(getAutoRole))
-	registry.Register(command.NewReactCommand(fetchGIF))
+	registry.Register(command.NewReactCommand(fetchGIF, checkAndSet))
 	registry.Register(command.NewPrefixCommand(getPrefix))
 
 	bot.Session.AddHandler(registry.Handle)
@@ -81,7 +85,7 @@ func main() {
 	if defaultPrefix == "" {
 		defaultPrefix = "!"
 	}
-	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF))
+	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF, checkAndSet))
 
 	if err := bot.Session.Open(); err != nil {
 		logrus.WithError(err).Fatal("discord: failed to open session")

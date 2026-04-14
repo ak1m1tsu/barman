@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	guilddomain "github.com/ak1m1tsu/barman/internal/domain/guild"
+	cooldownuc "github.com/ak1m1tsu/barman/internal/usecase/cooldown"
 	reactionuc "github.com/ak1m1tsu/barman/internal/usecase/reaction"
 )
 
@@ -46,7 +47,7 @@ var msgReactions = map[string]msgReactionMeta{
 //
 // Priority: explicit mention > reply context > no target.
 // The guild-specific prefix is fetched at runtime from repo; defaultPrefix is used as fallback.
-func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFUseCase) func(*discordgo.Session, *discordgo.MessageCreate) {
+func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase) func(*discordgo.Session, *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, msg *discordgo.MessageCreate) {
 		if msg.Author == nil || msg.Author.Bot {
 			return
@@ -151,6 +152,36 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 		s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
 			Embed: embed,
 		})
+
+		// If the target is the bot — respond with the same reaction back.
+		botID := s.State.User.ID
+		if targetID == botID {
+			allowed, err := checkAndSet.Execute(context.Background(), msg.Author.ID)
+			if err != nil {
+				log.WithError(err).Error("failed to check reaction cooldown")
+				return
+			}
+			if !allowed {
+				return
+			}
+
+			botGIF, err := fetchGIF.Execute(context.Background(), reactionType)
+			if err != nil {
+				log.WithError(err).Error("failed to fetch bot reaction gif")
+				return
+			}
+
+			botName := memberDisplayName(&discordgo.Member{User: s.State.User})
+			botSentence := fmt.Sprintf(meta.withTarget, botName, actor)
+			s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
+				Content: fmt.Sprintf("<@%s>", msg.Author.ID),
+				Embed: &discordgo.MessageEmbed{
+					Title: botSentence,
+					Color: rand.Intn(0xFFFFFF + 1),
+					Image: &discordgo.MessageEmbedImage{URL: botGIF},
+				},
+			})
+		}
 	}
 }
 
