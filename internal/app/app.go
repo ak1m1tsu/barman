@@ -48,6 +48,7 @@ func New(cfg *config.Config) (*App, error) {
 	// Repositories
 	guildRepo := sqliterepo.NewGuildRepository(db)
 	cooldownRepo := sqliterepo.NewCooldownRepository(db)
+	reactionStatsRepo := sqliterepo.NewReactionStatsRepository(db)
 
 	// Infrastructure
 	roleAssigner := discord.NewRoleAssigner(bot.Session)
@@ -68,6 +69,8 @@ func New(cfg *config.Config) (*App, error) {
 	fetchGIF := reactionuc.NewFetchGIFWithFallback(nekos, otakugifs)
 
 	checkAndSet := cooldownuc.NewCheckAndSet(cooldownRepo)
+	incrementStat := reactionuc.NewIncrementStat(reactionStatsRepo)
+	getStats := reactionuc.NewGetStats(reactionStatsRepo)
 
 	handlerTimeout := cfg.Timeouts.Handler
 	if handlerTimeout == 0 {
@@ -81,8 +84,8 @@ func New(cfg *config.Config) (*App, error) {
 	registry.Register(command.NewHelpCommand())
 	registry.Register(command.NewUserInfoCommand())
 	registry.Register(command.NewAutoRoleCommand(getAutoRole, handlerTimeout))
-	registry.Register(command.NewReactionsCommand())
-	registry.Register(command.NewReactCommand(fetchGIF, checkAndSet, cfg.Discord.OwnerIDs, handlerTimeout))
+	registry.Register(command.NewReactionsCommand(getStats, handlerTimeout))
+	registry.Register(command.NewReactCommand(fetchGIF, checkAndSet, incrementStat, cfg.Discord.OwnerIDs, handlerTimeout))
 	registry.Register(command.NewPrefixCommand(getPrefix, handlerTimeout))
 
 	// Event handlers
@@ -95,7 +98,7 @@ func New(cfg *config.Config) (*App, error) {
 	if defaultPrefix == "" {
 		defaultPrefix = "!"
 	}
-	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF, checkAndSet, cfg.Discord.OwnerIDs, handlerTimeout))
+	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF, checkAndSet, incrementStat, cfg.Discord.OwnerIDs, handlerTimeout))
 
 	log.Info("all dependencies wired")
 
