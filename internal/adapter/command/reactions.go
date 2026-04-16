@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/sirupsen/logrus"
 )
 
 func NewReactionsCommand() (*discordgo.ApplicationCommand, Handler) {
@@ -18,7 +19,7 @@ func NewReactionsCommand() (*discordgo.ApplicationCommand, Handler) {
 			list = append(list, "`"+r+"`")
 		}
 
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Embeds: []*discordgo.MessageEmbed{
@@ -32,7 +33,9 @@ func NewReactionsCommand() (*discordgo.ApplicationCommand, Handler) {
 					},
 				},
 			},
-		})
+		}); err != nil {
+			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("reactions: failed to send response")
+		}
 	}
 
 	return cmd, handler

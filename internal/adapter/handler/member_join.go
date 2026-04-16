@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -17,7 +18,9 @@ func NewMemberJoinHandler(uc *memberuc.AssignAutoRoleUseCase) func(*discordgo.Se
 			"guild_id": e.GuildID,
 			"user_id":  e.User.ID,
 		})
-		if err := uc.Execute(context.Background(), e.GuildID, e.User.ID); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := uc.Execute(ctx, e.GuildID, e.User.ID); err != nil {
 			log.WithError(err).Error("autorole: failed to assign role")
 			return
 		}
