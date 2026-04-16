@@ -53,7 +53,7 @@ var reactionsMeta = map[string]reactionMeta{
 	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
 }
 
-func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, ownerIDs []string) (*discordgo.ApplicationCommand, Handler) {
+func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, ownerIDs []string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
 	choices := make([]*discordgo.ApplicationCommandOptionChoice, 0, len(reactionOrder))
 	for _, key := range reactionOrder {
 		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
@@ -88,7 +88,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		opts := i.ApplicationCommandData().Options

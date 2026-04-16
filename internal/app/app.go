@@ -69,27 +69,33 @@ func New(cfg *config.Config) (*App, error) {
 
 	checkAndSet := cooldownuc.NewCheckAndSet(cooldownRepo)
 
+	handlerTimeout := cfg.Timeouts.Handler
+	if handlerTimeout == 0 {
+		handlerTimeout = config.DefaultHandlerTimeout
+	}
+	log.WithField("handler_timeout", handlerTimeout).Info("timeouts configured")
+
 	// Commands
 	registry := command.NewRegistry()
 	registry.Register(command.NewPingCommand())
 	registry.Register(command.NewHelpCommand())
 	registry.Register(command.NewUserInfoCommand())
-	registry.Register(command.NewAutoRoleCommand(getAutoRole))
+	registry.Register(command.NewAutoRoleCommand(getAutoRole, handlerTimeout))
 	registry.Register(command.NewReactionsCommand())
-	registry.Register(command.NewReactCommand(fetchGIF, checkAndSet, cfg.Discord.OwnerIDs))
-	registry.Register(command.NewPrefixCommand(getPrefix))
+	registry.Register(command.NewReactCommand(fetchGIF, checkAndSet, cfg.Discord.OwnerIDs, handlerTimeout))
+	registry.Register(command.NewPrefixCommand(getPrefix, handlerTimeout))
 
 	// Event handlers
 	bot.Session.AddHandler(registry.Handle)
-	bot.Session.AddHandler(handler.NewMemberJoinHandler(assignAutoRole))
-	bot.Session.AddHandler(handler.NewPrefixInteractionHandler(setPrefix, removePrefix))
-	bot.Session.AddHandler(handler.NewAutoRoleInteractionHandler(setAutoRole, getAutoRole, removeAutoRole))
+	bot.Session.AddHandler(handler.NewMemberJoinHandler(assignAutoRole, handlerTimeout))
+	bot.Session.AddHandler(handler.NewPrefixInteractionHandler(setPrefix, removePrefix, handlerTimeout))
+	bot.Session.AddHandler(handler.NewAutoRoleInteractionHandler(setAutoRole, getAutoRole, removeAutoRole, handlerTimeout))
 
 	defaultPrefix := cfg.Discord.Prefix
 	if defaultPrefix == "" {
 		defaultPrefix = "!"
 	}
-	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF, checkAndSet, cfg.Discord.OwnerIDs))
+	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF, checkAndSet, cfg.Discord.OwnerIDs, handlerTimeout))
 
 	log.Info("all dependencies wired")
 
