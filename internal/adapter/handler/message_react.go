@@ -193,14 +193,16 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 
 			botName := memberDisplayName(&discordgo.Member{User: s.State.User})
 			botSentence := fmt.Sprintf(meta.withTarget, botName, actor)
-			s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
+			if _, err := s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{
 				Reference: msg.Reference(),
 				Embed: &discordgo.MessageEmbed{
 					Title: botSentence,
 					Color: rand.Intn(0xFFFFFF + 1),
 					Image: &discordgo.MessageEmbedImage{URL: botGIF},
 				},
-			})
+			}); err != nil {
+				log.WithError(err).Error("failed to send bot reaction message")
+			}
 		}
 	}
 }

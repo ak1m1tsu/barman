@@ -76,12 +76,17 @@ func NewUserInfoCommand() (*discordgo.ApplicationCommand, Handler) {
 			},
 		}
 
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Embeds: []*discordgo.MessageEmbed{embed},
 			},
-		})
+		}); err != nil {
+			logrus.WithError(err).WithFields(logrus.Fields{
+				"guild_id": i.GuildID,
+				"user_id":  target.ID,
+			}).Error("userinfo: failed to send response")
+		}
 	}
 
 	return cmd, handler

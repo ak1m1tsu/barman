@@ -158,9 +158,11 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 			log.WithError(err).Error("failed to fetch reaction gif")
 			errMsg := "Не удалось получить GIF. Попробуйте позже."
 			if pingTarget {
-				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{ //nolint:errcheck
+				if _, err := s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 					Content: &errMsg,
-				})
+				}); err != nil {
+					log.WithError(err).Error("react: failed to edit response with error message")
+				}
 			} else {
 				respondEphemeral(s, i, errMsg)
 			}
@@ -175,17 +177,21 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 
 		if pingTarget {
 			empty := ""
-			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{ //nolint:errcheck
+			if _, err := s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 				Content: &empty,
 				Embeds:  &[]*discordgo.MessageEmbed{embed},
-			})
+			}); err != nil {
+				log.WithError(err).Error("react: failed to edit response with embed")
+			}
 		} else {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+			if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
 					Embeds: []*discordgo.MessageEmbed{embed},
 				},
-			})
+			}); err != nil {
+				log.WithError(err).Error("react: failed to send response")
+			}
 		}
 
 		// If the target is the bot — respond with the same reaction back.
@@ -218,14 +224,16 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 
 			botName := displayName(&discordgo.Member{User: s.State.User})
 			botSentence := fmt.Sprintf(meta.withTarget, botName, actor)
-			s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
+			if _, err := s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
 				Reference: respMsg.Reference(),
 				Embed: &discordgo.MessageEmbed{
 					Title: botSentence,
 					Color: rand.Intn(0xFFFFFF + 1),
 					Image: &discordgo.MessageEmbedImage{URL: botGIF},
 				},
-			})
+			}); err != nil {
+				log.WithError(err).Error("react: failed to send bot reaction")
+			}
 		}
 	}
 

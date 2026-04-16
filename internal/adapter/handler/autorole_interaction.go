@@ -45,7 +45,7 @@ func NewAutoRoleInteractionHandler(
 		switch data.CustomID {
 		case autoroleSetButtonID:
 			// Swap buttons for a Role SelectMenu in-place
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+			if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseUpdateMessage,
 				Data: &discordgo.InteractionResponseData{
 					Content: "Выберите роль для авто-выдачи новым участникам:",
@@ -71,17 +71,21 @@ func NewAutoRoleInteractionHandler(
 						},
 					},
 				},
-			})
+			}); err != nil {
+				log.WithError(err).Error("autorole: failed to show role select")
+			}
 
 		case autoroleCancelButtonID:
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+			if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseUpdateMessage,
 				Data: &discordgo.InteractionResponseData{
 					Content:    "Отменено.",
 					Flags:      discordgo.MessageFlagsEphemeral,
 					Components: []discordgo.MessageComponent{},
 				},
-			})
+			}); err != nil {
+				log.WithError(err).Error("autorole: failed to send cancel response")
+			}
 
 		case autoroleRemoveButtonID:
 			if err := removeUC.Execute(ctx, i.GuildID); err != nil {
@@ -109,7 +113,7 @@ func NewAutoRoleInteractionHandler(
 				return
 			}
 
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+			if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseUpdateMessage,
 				Data: &discordgo.InteractionResponseData{
 					Content: fmt.Sprintf("Текущая авто-роль: <@&%s>", g.AutoRoleID),
@@ -136,7 +140,9 @@ func NewAutoRoleInteractionHandler(
 						},
 					},
 				},
-			})
+			}); err != nil {
+				log.WithError(err).Error("autorole: failed to update message after role set")
+			}
 		}
 	}
 }

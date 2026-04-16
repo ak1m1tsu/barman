@@ -50,7 +50,7 @@ func handlePrefixButton(
 
 	switch data.CustomID {
 	case prefixSetButtonID:
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseModal,
 			Data: &discordgo.InteractionResponseData{
 				CustomID: prefixModalID,
@@ -71,7 +71,9 @@ func handlePrefixButton(
 					},
 				},
 			},
-		})
+		}); err != nil {
+			log.WithError(err).Error("prefix: failed to show modal")
+		}
 
 	case prefixResetButtonID:
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -135,11 +137,13 @@ func modalTextValue(components []discordgo.MessageComponent, customID string) st
 }
 
 func respondComponentEphemeral(s *discordgo.Session, i *discordgo.InteractionCreate, content string) {
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: content,
 			Flags:   discordgo.MessageFlagsEphemeral,
 		},
-	})
+	}); err != nil {
+		logrus.WithError(err).WithField("guild_id", i.GuildID).Error("failed to send component ephemeral response")
+	}
 }

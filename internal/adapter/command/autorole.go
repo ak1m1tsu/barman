@@ -44,7 +44,7 @@ func NewAutoRoleCommand(getUC *guilduc.GetAutoRoleUseCase) (*discordgo.Applicati
 			current = fmt.Sprintf("<@&%s>", g.AutoRoleID)
 		}
 
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Текущая авто-роль: %s", current),
@@ -71,18 +71,22 @@ func NewAutoRoleCommand(getUC *guilduc.GetAutoRoleUseCase) (*discordgo.Applicati
 					},
 				},
 			},
-		})
+		}); err != nil {
+			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("autorole: failed to send response")
+		}
 	}
 
 	return cmd, handler
 }
 
 func respondEphemeral(s *discordgo.Session, i *discordgo.InteractionCreate, content string) {
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: content,
 			Flags:   discordgo.MessageFlagsEphemeral,
 		},
-	})
+	}); err != nil {
+		logrus.WithError(err).WithField("guild_id", i.GuildID).Error("failed to send ephemeral response")
+	}
 }

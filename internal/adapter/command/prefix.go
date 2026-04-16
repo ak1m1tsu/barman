@@ -44,7 +44,7 @@ func NewPrefixCommand(getUC *guilduc.GetPrefixUseCase) (*discordgo.ApplicationCo
 			currentDisplay = fmt.Sprintf("`%s`", prefix)
 		}
 
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Текущий префикс: %s", currentDisplay),
@@ -66,7 +66,9 @@ func NewPrefixCommand(getUC *guilduc.GetPrefixUseCase) (*discordgo.ApplicationCo
 					},
 				},
 			},
-		})
+		}); err != nil {
+			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("prefix: failed to send response")
+		}
 	}
 
 	return cmd, handler
