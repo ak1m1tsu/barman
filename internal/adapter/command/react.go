@@ -53,7 +53,7 @@ var reactionsMeta = map[string]reactionMeta{
 	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
 }
 
-func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, ownerIDs []string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
+func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
 	choices := make([]*discordgo.ApplicationCommandOptionChoice, 0, len(reactionOrder))
 	for _, key := range reactionOrder {
 		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
@@ -192,6 +192,10 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 			}); err != nil {
 				log.WithError(err).Error("react: failed to send response")
 			}
+		}
+
+		if err := incrementStat.Execute(ctx, reactionType); err != nil {
+			log.WithError(err).Warn("failed to increment reaction stat")
 		}
 
 		// If the target is the bot — respond with the same reaction back.
