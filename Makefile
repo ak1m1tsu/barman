@@ -12,6 +12,9 @@ mock:
 build:
 	go build -o bin/bot ./cmd/bot/
 
+run: build
+	./bin/bot --config ./configs/config.yaml
+
 docker-build:
 	docker build -t barman .
 
