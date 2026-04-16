@@ -5,16 +5,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/ak1m1tsu/barman/internal/app"
 	"github.com/ak1m1tsu/barman/internal/infrastructure/config"
+	"github.com/ak1m1tsu/barman/internal/infrastructure/logger"
 )
 
 func main() {
-	logrus.SetFormatter(&logrus.JSONFormatter{TimestampFormat: time.RFC3339})
+	logrus.SetFormatter(&logger.JSONFormatter{})
 	logrus.SetOutput(os.Stdout)
 
 	configPath := flag.String("config", "configs/config.yaml", "Path to YAML config file")
