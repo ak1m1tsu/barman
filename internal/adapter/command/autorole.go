@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -27,7 +28,9 @@ func NewAutoRoleCommand(getUC *guilduc.GetAutoRoleUseCase) (*discordgo.Applicati
 			return
 		}
 
-		g, err := getUC.Execute(context.Background(), i.GuildID)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		g, err := getUC.Execute(ctx, i.GuildID)
 		if err != nil {
 			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("failed to get autorole")
 			respondEphemeral(s, i, "Ошибка при получении авто-роли.")

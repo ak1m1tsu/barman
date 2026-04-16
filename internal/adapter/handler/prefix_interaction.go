@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -73,7 +74,9 @@ func handlePrefixButton(
 		})
 
 	case prefixResetButtonID:
-		if err := removeUC.Execute(context.Background(), i.GuildID); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := removeUC.Execute(ctx, i.GuildID); err != nil {
 			log.WithError(err).Error("failed to reset prefix")
 			respondComponentEphemeral(s, i, "Ошибка при сбросе префикса.")
 			return
@@ -103,7 +106,9 @@ func handlePrefixModal(
 		return
 	}
 
-	if err := setUC.Execute(context.Background(), i.GuildID, prefix); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := setUC.Execute(ctx, i.GuildID, prefix); err != nil {
 		log.WithError(err).Error("failed to set prefix")
 		respondComponentEphemeral(s, i, "Ошибка при сохранении префикса.")
 		return

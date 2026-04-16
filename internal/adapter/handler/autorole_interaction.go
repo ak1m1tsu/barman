@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -27,6 +28,9 @@ func NewAutoRoleInteractionHandler(
 		if i.Type != discordgo.InteractionMessageComponent {
 			return
 		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
 
 		data := i.MessageComponentData()
 		log := logrus.WithFields(logrus.Fields{
@@ -80,7 +84,7 @@ func NewAutoRoleInteractionHandler(
 			})
 
 		case autoroleRemoveButtonID:
-			if err := removeUC.Execute(context.Background(), i.GuildID); err != nil {
+			if err := removeUC.Execute(ctx, i.GuildID); err != nil {
 				log.WithError(err).Error("failed to remove autorole")
 				respondComponentEphemeral(s, i, "Ошибка при удалении авто-роли.")
 				return
@@ -93,13 +97,13 @@ func NewAutoRoleInteractionHandler(
 			}
 			roleID := data.Values[0]
 
-			if err := setUC.Execute(context.Background(), i.GuildID, roleID); err != nil {
+			if err := setUC.Execute(ctx, i.GuildID, roleID); err != nil {
 				log.WithError(err).Error("failed to set autorole")
 				respondComponentEphemeral(s, i, "Ошибка при установке авто-роли.")
 				return
 			}
 
-			g, err := getUC.Execute(context.Background(), i.GuildID)
+			g, err := getUC.Execute(ctx, i.GuildID)
 			if err != nil || g == nil {
 				respondComponentEphemeral(s, i, fmt.Sprintf("Авто-роль установлена: <@&%s>.", roleID))
 				return

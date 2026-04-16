@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"slices"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -87,6 +88,9 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 			return
 		}
 
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
 		opts := i.ApplicationCommandData().Options
 		reactionType := opts[0].StringValue()
 		meta := reactionsMeta[reactionType]
@@ -149,7 +153,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 			}
 		}
 
-		gifURL, err := fetchGIF.Execute(context.Background(), reactionType)
+		gifURL, err := fetchGIF.Execute(ctx, reactionType)
 		if err != nil {
 			log.WithError(err).Error("failed to fetch reaction gif")
 			errMsg := "Не удалось получить GIF. Попробуйте позже."
@@ -189,7 +193,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 		if targetID == botID {
 			isOwner := slices.Contains(ownerIDs, i.Member.User.ID)
 			if !isOwner {
-				allowed, err := checkAndSet.Execute(context.Background(), i.Member.User.ID)
+				allowed, err := checkAndSet.Execute(ctx, i.Member.User.ID)
 				if err != nil {
 					log.WithError(err).Error("failed to check reaction cooldown")
 					return
@@ -199,7 +203,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 				}
 			}
 
-			botGIF, err := fetchGIF.Execute(context.Background(), reactionType)
+			botGIF, err := fetchGIF.Execute(ctx, reactionType)
 			if err != nil {
 				log.WithError(err).Error("failed to fetch bot reaction gif")
 				return
