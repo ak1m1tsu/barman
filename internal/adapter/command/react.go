@@ -95,7 +95,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 		reactionType := opts[0].StringValue()
 		meta := reactionsMeta[reactionType]
 
-		actor := displayName(i.Member)
+		actor := memberDisplayName(i.Member)
 
 		// Resolve target
 		var targetID string
@@ -116,7 +116,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 					respondEphemeral(s, i, "Не удалось получить информацию о пользователе.")
 					return
 				}
-				targetName = displayName(targetMember)
+				targetName = memberDisplayName(targetMember)
 			}
 		}
 
@@ -222,7 +222,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 				return
 			}
 
-			botName := displayName(&discordgo.Member{User: s.State.User})
+			botName := memberDisplayName(&discordgo.Member{User: s.State.User})
 			botSentence := fmt.Sprintf(meta.withTarget, botName, actor)
 			if _, err := s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
 				Reference: respMsg.Reference(),
@@ -240,8 +240,8 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 	return cmd, handler
 }
 
-// displayName returns the best available display name for a guild member.
-func displayName(m *discordgo.Member) string {
+// memberDisplayName returns the best available display name for a guild member.
+func memberDisplayName(m *discordgo.Member) string {
 	if m.Nick != "" {
 		return m.Nick
 	}
