@@ -22,13 +22,14 @@ const (
 func NewPrefixInteractionHandler(
 	setUC *guilduc.SetPrefixUseCase,
 	removeUC *guilduc.RemovePrefixUseCase,
+	timeout time.Duration,
 ) func(*discordgo.Session, *discordgo.InteractionCreate) {
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		switch i.Type {
 		case discordgo.InteractionMessageComponent:
-			handlePrefixButton(s, i, setUC, removeUC)
+			handlePrefixButton(s, i, setUC, removeUC, timeout)
 		case discordgo.InteractionModalSubmit:
-			handlePrefixModal(s, i, setUC)
+			handlePrefixModal(s, i, setUC, timeout)
 		}
 	}
 }
@@ -38,6 +39,7 @@ func handlePrefixButton(
 	i *discordgo.InteractionCreate,
 	_ *guilduc.SetPrefixUseCase,
 	removeUC *guilduc.RemovePrefixUseCase,
+	timeout time.Duration,
 ) {
 	data := i.MessageComponentData()
 	log := logrus.WithFields(logrus.Fields{
@@ -76,7 +78,7 @@ func handlePrefixButton(
 		}
 
 	case prefixResetButtonID:
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		if err := removeUC.Execute(ctx, i.GuildID); err != nil {
 			log.WithError(err).Error("failed to reset prefix")
@@ -91,6 +93,7 @@ func handlePrefixModal(
 	s *discordgo.Session,
 	i *discordgo.InteractionCreate,
 	setUC *guilduc.SetPrefixUseCase,
+	timeout time.Duration,
 ) {
 	data := i.ModalSubmitData()
 	if data.CustomID != prefixModalID {

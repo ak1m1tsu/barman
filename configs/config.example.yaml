@@ -8,3 +8,6 @@ discord:
 
 database:
   path: "barman.db"
+
+timeouts:
+  handler: 10s  # timeout for Discord command and event handlers

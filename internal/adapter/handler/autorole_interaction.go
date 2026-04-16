@@ -23,13 +23,14 @@ func NewAutoRoleInteractionHandler(
 	setUC *guilduc.SetAutoRoleUseCase,
 	getUC *guilduc.GetAutoRoleUseCase,
 	removeUC *guilduc.RemoveAutoRoleUseCase,
+	timeout time.Duration,
 ) func(*discordgo.Session, *discordgo.InteractionCreate) {
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Type != discordgo.InteractionMessageComponent {
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		data := i.MessageComponentData()

@@ -11,7 +11,7 @@ import (
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 )
 
-func NewPrefixCommand(getUC *guilduc.GetPrefixUseCase) (*discordgo.ApplicationCommand, Handler) {
+func NewPrefixCommand(getUC *guilduc.GetPrefixUseCase, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
 	cmd := &discordgo.ApplicationCommand{
 		Name:        "prefix",
 		Description: "Управление префиксом команд сервера",
@@ -28,7 +28,7 @@ func NewPrefixCommand(getUC *guilduc.GetPrefixUseCase) (*discordgo.ApplicationCo
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		prefix, err := getUC.Execute(ctx, i.GuildID)
 		if err != nil {
