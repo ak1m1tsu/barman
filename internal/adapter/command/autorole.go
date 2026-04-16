@@ -11,7 +11,7 @@ import (
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 )
 
-func NewAutoRoleCommand(getUC *guilduc.GetAutoRoleUseCase) (*discordgo.ApplicationCommand, Handler) {
+func NewAutoRoleCommand(getUC *guilduc.GetAutoRoleUseCase, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
 	cmd := &discordgo.ApplicationCommand{
 		Name:        "autorole",
 		Description: "Управление авто-ролью сервера",
@@ -28,7 +28,7 @@ func NewAutoRoleCommand(getUC *guilduc.GetAutoRoleUseCase) (*discordgo.Applicati
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		g, err := getUC.Execute(ctx, i.GuildID)
 		if err != nil {

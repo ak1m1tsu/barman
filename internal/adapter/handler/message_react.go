@@ -58,13 +58,13 @@ var msgReactions = map[string]msgReactionMeta{
 //
 // Priority: explicit mention > reply context > no target.
 // The guild-specific prefix is fetched at runtime from repo; defaultPrefix is used as fallback.
-func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, ownerIDs []string) func(*discordgo.Session, *discordgo.MessageCreate) {
+func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, ownerIDs []string, timeout time.Duration) func(*discordgo.Session, *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, msg *discordgo.MessageCreate) {
 		if msg.Author == nil || msg.Author.Bot {
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		prefix := defaultPrefix

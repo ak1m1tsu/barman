@@ -2,14 +2,19 @@ package config
 
 import (
 	"os"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
+
+// DefaultHandlerTimeout is used when timeouts.handler is not set in config.
+const DefaultHandlerTimeout = 10 * time.Second
 
 // Config holds all application configuration loaded from a YAML file.
 type Config struct {
 	Discord  DiscordConfig  `yaml:"discord"`
 	Database DatabaseConfig `yaml:"database"`
+	Timeouts TimeoutsConfig `yaml:"timeouts"`
 }
 
 type DiscordConfig struct {
@@ -22,6 +27,10 @@ type DiscordConfig struct {
 
 type DatabaseConfig struct {
 	Path string `yaml:"path"`
+}
+
+type TimeoutsConfig struct {
+	Handler time.Duration `yaml:"handler"`
 }
 
 // Load reads and parses the YAML config file at the given path.
