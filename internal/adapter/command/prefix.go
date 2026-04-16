@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -27,7 +28,9 @@ func NewPrefixCommand(getUC *guilduc.GetPrefixUseCase) (*discordgo.ApplicationCo
 			return
 		}
 
-		prefix, err := getUC.Execute(context.Background(), i.GuildID)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		prefix, err := getUC.Execute(ctx, i.GuildID)
 		if err != nil {
 			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("failed to get prefix")
 			respondEphemeral(s, i, "Ошибка при получении префикса.")
@@ -41,7 +44,7 @@ func NewPrefixCommand(getUC *guilduc.GetPrefixUseCase) (*discordgo.ApplicationCo
 			currentDisplay = fmt.Sprintf("`%s`", prefix)
 		}
 
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Текущий префикс: %s", currentDisplay),
@@ -63,7 +66,9 @@ func NewPrefixCommand(getUC *guilduc.GetPrefixUseCase) (*discordgo.ApplicationCo
 					},
 				},
 			},
-		})
+		}); err != nil {
+			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("prefix: failed to send response")
+		}
 	}
 
 	return cmd, handler

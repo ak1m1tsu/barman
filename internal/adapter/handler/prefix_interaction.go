@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -49,7 +50,7 @@ func handlePrefixButton(
 
 	switch data.CustomID {
 	case prefixSetButtonID:
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseModal,
 			Data: &discordgo.InteractionResponseData{
 				CustomID: prefixModalID,
@@ -70,10 +71,14 @@ func handlePrefixButton(
 					},
 				},
 			},
-		})
+		}); err != nil {
+			log.WithError(err).Error("prefix: failed to show modal")
+		}
 
 	case prefixResetButtonID:
-		if err := removeUC.Execute(context.Background(), i.GuildID); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := removeUC.Execute(ctx, i.GuildID); err != nil {
 			log.WithError(err).Error("failed to reset prefix")
 			respondComponentEphemeral(s, i, "Ошибка при сбросе префикса.")
 			return
@@ -103,7 +108,9 @@ func handlePrefixModal(
 		return
 	}
 
-	if err := setUC.Execute(context.Background(), i.GuildID, prefix); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := setUC.Execute(ctx, i.GuildID, prefix); err != nil {
 		log.WithError(err).Error("failed to set prefix")
 		respondComponentEphemeral(s, i, "Ошибка при сохранении префикса.")
 		return
@@ -130,11 +137,13 @@ func modalTextValue(components []discordgo.MessageComponent, customID string) st
 }
 
 func respondComponentEphemeral(s *discordgo.Session, i *discordgo.InteractionCreate, content string) {
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: content,
 			Flags:   discordgo.MessageFlagsEphemeral,
 		},
-	})
+	}); err != nil {
+		logrus.WithError(err).WithField("guild_id", i.GuildID).Error("failed to send component ephemeral response")
+	}
 }

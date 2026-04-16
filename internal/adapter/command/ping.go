@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/sirupsen/logrus"
 )
 
 func NewPingCommand() (*discordgo.ApplicationCommand, Handler) {
@@ -15,12 +16,14 @@ func NewPingCommand() (*discordgo.ApplicationCommand, Handler) {
 
 	handler := func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		latency := s.HeartbeatLatency().Round(time.Millisecond)
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Pong! Задержка: %s", latency),
 			},
-		})
+		}); err != nil {
+			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("ping: failed to send response")
+		}
 	}
 
 	return cmd, handler

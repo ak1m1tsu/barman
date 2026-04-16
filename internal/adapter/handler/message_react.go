@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -63,8 +64,11 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 			return
 		}
 
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
 		prefix := defaultPrefix
-		if g, err := repo.FindByID(context.Background(), msg.GuildID); err == nil && g != nil && g.Prefix != "" {
+		if g, err := repo.FindByID(ctx, msg.GuildID); err == nil && g != nil && g.Prefix != "" {
 			prefix = g.Prefix
 		}
 
@@ -146,7 +150,7 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 		}
 
 		// Fetch GIF
-		gifURL, err := fetchGIF.Execute(context.Background(), reactionType)
+		gifURL, err := fetchGIF.Execute(ctx, reactionType)
 		if err != nil {
 			log.WithError(err).Error("failed to fetch reaction gif")
 			s.ChannelMessageSendReply(msg.ChannelID, "Не удалось получить GIF. Попробуйте позже.", msg.Reference()) //nolint:errcheck
@@ -171,7 +175,7 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 		if targetID == botID {
 			isOwner := slices.Contains(ownerIDs, msg.Author.ID)
 			if !isOwner {
-				allowed, err := checkAndSet.Execute(context.Background(), msg.Author.ID)
+				allowed, err := checkAndSet.Execute(ctx, msg.Author.ID)
 				if err != nil {
 					log.WithError(err).Error("failed to check reaction cooldown")
 					return
@@ -181,7 +185,7 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 				}
 			}
 
-			botGIF, err := fetchGIF.Execute(context.Background(), reactionType)
+			botGIF, err := fetchGIF.Execute(ctx, reactionType)
 			if err != nil {
 				log.WithError(err).Error("failed to fetch bot reaction gif")
 				return
@@ -189,14 +193,16 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 
 			botName := memberDisplayName(&discordgo.Member{User: s.State.User})
 			botSentence := fmt.Sprintf(meta.withTarget, botName, actor)
-			s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
+			if _, err := s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{
 				Reference: msg.Reference(),
 				Embed: &discordgo.MessageEmbed{
 					Title: botSentence,
 					Color: rand.Intn(0xFFFFFF + 1),
 					Image: &discordgo.MessageEmbedImage{URL: botGIF},
 				},
-			})
+			}); err != nil {
+				log.WithError(err).Error("failed to send bot reaction message")
+			}
 		}
 	}
 }

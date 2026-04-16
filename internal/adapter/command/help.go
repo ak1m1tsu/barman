@@ -1,6 +1,9 @@
 package command
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"github.com/bwmarrin/discordgo"
+	"github.com/sirupsen/logrus"
+)
 
 func NewHelpCommand() (*discordgo.ApplicationCommand, Handler) {
 	cmd := &discordgo.ApplicationCommand{
@@ -23,12 +26,14 @@ func NewHelpCommand() (*discordgo.ApplicationCommand, Handler) {
 				{Name: "!<тип> [@пользователь]", Value: "Отправить реакцию через префи��с; в reply — цель определяется автоматически"},
 			},
 		}
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Embeds: []*discordgo.MessageEmbed{embed},
 			},
-		})
+		}); err != nil {
+			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("help: failed to send response")
+		}
 	}
 
 	return cmd, handler

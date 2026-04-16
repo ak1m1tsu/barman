@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"slices"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -87,11 +88,14 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 			return
 		}
 
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
 		opts := i.ApplicationCommandData().Options
 		reactionType := opts[0].StringValue()
 		meta := reactionsMeta[reactionType]
 
-		actor := displayName(i.Member)
+		actor := memberDisplayName(i.Member)
 
 		// Resolve target
 		var targetID string
@@ -112,7 +116,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 					respondEphemeral(s, i, "Не удалось получить информацию о пользователе.")
 					return
 				}
-				targetName = displayName(targetMember)
+				targetName = memberDisplayName(targetMember)
 			}
 		}
 
@@ -149,14 +153,16 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 			}
 		}
 
-		gifURL, err := fetchGIF.Execute(context.Background(), reactionType)
+		gifURL, err := fetchGIF.Execute(ctx, reactionType)
 		if err != nil {
 			log.WithError(err).Error("failed to fetch reaction gif")
 			errMsg := "Не удалось получить GIF. Попробуйте позже."
 			if pingTarget {
-				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{ //nolint:errcheck
+				if _, err := s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 					Content: &errMsg,
-				})
+				}); err != nil {
+					log.WithError(err).Error("react: failed to edit response with error message")
+				}
 			} else {
 				respondEphemeral(s, i, errMsg)
 			}
@@ -171,17 +177,21 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 
 		if pingTarget {
 			empty := ""
-			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{ //nolint:errcheck
+			if _, err := s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 				Content: &empty,
 				Embeds:  &[]*discordgo.MessageEmbed{embed},
-			})
+			}); err != nil {
+				log.WithError(err).Error("react: failed to edit response with embed")
+			}
 		} else {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+			if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
 					Embeds: []*discordgo.MessageEmbed{embed},
 				},
-			})
+			}); err != nil {
+				log.WithError(err).Error("react: failed to send response")
+			}
 		}
 
 		// If the target is the bot — respond with the same reaction back.
@@ -189,7 +199,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 		if targetID == botID {
 			isOwner := slices.Contains(ownerIDs, i.Member.User.ID)
 			if !isOwner {
-				allowed, err := checkAndSet.Execute(context.Background(), i.Member.User.ID)
+				allowed, err := checkAndSet.Execute(ctx, i.Member.User.ID)
 				if err != nil {
 					log.WithError(err).Error("failed to check reaction cooldown")
 					return
@@ -199,7 +209,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 				}
 			}
 
-			botGIF, err := fetchGIF.Execute(context.Background(), reactionType)
+			botGIF, err := fetchGIF.Execute(ctx, reactionType)
 			if err != nil {
 				log.WithError(err).Error("failed to fetch bot reaction gif")
 				return
@@ -212,24 +222,26 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 				return
 			}
 
-			botName := displayName(&discordgo.Member{User: s.State.User})
+			botName := memberDisplayName(&discordgo.Member{User: s.State.User})
 			botSentence := fmt.Sprintf(meta.withTarget, botName, actor)
-			s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{ //nolint:errcheck
+			if _, err := s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
 				Reference: respMsg.Reference(),
 				Embed: &discordgo.MessageEmbed{
 					Title: botSentence,
 					Color: rand.Intn(0xFFFFFF + 1),
 					Image: &discordgo.MessageEmbedImage{URL: botGIF},
 				},
-			})
+			}); err != nil {
+				log.WithError(err).Error("react: failed to send bot reaction")
+			}
 		}
 	}
 
 	return cmd, handler
 }
 
-// displayName returns the best available display name for a guild member.
-func displayName(m *discordgo.Member) string {
+// memberDisplayName returns the best available display name for a guild member.
+func memberDisplayName(m *discordgo.Member) string {
 	if m.Nick != "" {
 		return m.Nick
 	}

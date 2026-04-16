@@ -10,10 +10,11 @@ import (
 
 	"github.com/ak1m1tsu/barman/internal/app"
 	"github.com/ak1m1tsu/barman/internal/infrastructure/config"
+	"github.com/ak1m1tsu/barman/internal/infrastructure/logger"
 )
 
 func main() {
-	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.SetFormatter(&logger.JSONFormatter{})
 	logrus.SetOutput(os.Stdout)
 
 	configPath := flag.String("config", "configs/config.yaml", "Path to YAML config file")
