@@ -80,6 +80,7 @@ func NewUserInfoCommand() (*discordgo.ApplicationCommand, Handler) {
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Embeds: []*discordgo.MessageEmbed{embed},
+				Flags:  discordgo.MessageFlagsEphemeral,
 			},
 		}); err != nil {
 			logrus.WithError(err).WithFields(logrus.Fields{
