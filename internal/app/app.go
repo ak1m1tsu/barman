@@ -84,7 +84,7 @@ func New(cfg *config.Config) (*App, error) {
 	registry.Register(command.NewHelpCommand())
 	registry.Register(command.NewUserInfoCommand())
 	registry.Register(command.NewAutoRoleCommand(getAutoRole, handlerTimeout))
-	registry.Register(command.NewReactionsCommand(getStats, handlerTimeout))
+	registry.Register(command.NewReactionsCommand(getStats, cfg.Discord.OwnerIDs, handlerTimeout))
 	registry.Register(command.NewReactCommand(fetchGIF, checkAndSet, incrementStat, cfg.Discord.OwnerIDs, handlerTimeout))
 	registry.Register(command.NewPrefixCommand(getPrefix, handlerTimeout))
 
