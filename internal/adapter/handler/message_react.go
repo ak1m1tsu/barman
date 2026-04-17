@@ -58,7 +58,7 @@ var msgReactions = map[string]msgReactionMeta{
 //
 // Priority: explicit mention > reply context > no target.
 // The guild-specific prefix is fetched at runtime from repo; defaultPrefix is used as fallback.
-func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, ownerIDs []string, timeout time.Duration) func(*discordgo.Session, *discordgo.MessageCreate) {
+func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, timeout time.Duration) func(*discordgo.Session, *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, msg *discordgo.MessageCreate) {
 		if msg.Author == nil || msg.Author.Bot {
 			return
@@ -168,6 +168,10 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 		}); err != nil {
 			log.WithError(err).Error("failed to send reaction embed")
 			return
+		}
+
+		if err := incrementStat.Execute(ctx, reactionType); err != nil {
+			log.WithError(err).Warn("failed to increment reaction stat")
 		}
 
 		// If the target is the bot — respond with the same reaction back.

@@ -13,7 +13,7 @@ Discord bot written in Go using Clean Architecture. Manages auto-role assignment
 | `/userinfo [user]` | Show user information | everyone |
 | `/autorole` | Manage auto-role for new members (interactive) | Manage Roles |
 | `/react <type> [user]` | Send an anime reaction GIF | everyone |
-| `/reactions` | List all available reaction types | everyone |
+| `/reactions` | List all available reaction types with descriptions and usage counts | everyone |
 | `/prefix` | View and change the server command prefix (interactive) | Manage Server |
 | `<prefix><type> [@user]` | Send a reaction via prefix (reply auto-targets the replied-to user) | everyone |
 

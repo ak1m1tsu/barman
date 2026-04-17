@@ -21,9 +21,9 @@ func (_m *MockGIFFetcher) EXPECT() *MockGIFFetcher_Expecter {
 	return &MockGIFFetcher_Expecter{mock: &_m.Mock}
 }
 
-// Fetch provides a mock function with given fields: ctx, reaction
-func (_m *MockGIFFetcher) Fetch(ctx context.Context, reaction string) (string, error) {
-	ret := _m.Called(ctx, reaction)
+// Fetch provides a mock function with given fields: ctx, _a1
+func (_m *MockGIFFetcher) Fetch(ctx context.Context, _a1 string) (string, error) {
+	ret := _m.Called(ctx, _a1)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Fetch")
@@ -32,16 +32,16 @@ func (_m *MockGIFFetcher) Fetch(ctx context.Context, reaction string) (string, e
 	var r0 string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
-		return rf(ctx, reaction)
+		return rf(ctx, _a1)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
-		r0 = rf(ctx, reaction)
+		r0 = rf(ctx, _a1)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, reaction)
+		r1 = rf(ctx, _a1)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -56,12 +56,12 @@ type MockGIFFetcher_Fetch_Call struct {
 
 // Fetch is a helper method to define mock.On call
 //   - ctx context.Context
-//   - reaction string
-func (_e *MockGIFFetcher_Expecter) Fetch(ctx interface{}, reaction interface{}) *MockGIFFetcher_Fetch_Call {
-	return &MockGIFFetcher_Fetch_Call{Call: _e.mock.On("Fetch", ctx, reaction)}
+//   - _a1 string
+func (_e *MockGIFFetcher_Expecter) Fetch(ctx interface{}, _a1 interface{}) *MockGIFFetcher_Fetch_Call {
+	return &MockGIFFetcher_Fetch_Call{Call: _e.mock.On("Fetch", ctx, _a1)}
 }
 
-func (_c *MockGIFFetcher_Fetch_Call) Run(run func(ctx context.Context, reaction string)) *MockGIFFetcher_Fetch_Call {
+func (_c *MockGIFFetcher_Fetch_Call) Run(run func(ctx context.Context, _a1 string)) *MockGIFFetcher_Fetch_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string))
 	})

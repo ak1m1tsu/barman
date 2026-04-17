@@ -21,3 +21,9 @@ packages:
       outpkg: "mockreaction"
     interfaces:
       GIFFetcher:
+  github.com/ak1m1tsu/barman/internal/domain/reaction:
+    config:
+      dir: "mocks/reaction"
+      outpkg: "mockreaction"
+    interfaces:
+      StatsRepository:
