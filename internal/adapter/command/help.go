@@ -30,6 +30,7 @@ func NewHelpCommand() (*discordgo.ApplicationCommand, Handler) {
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Embeds: []*discordgo.MessageEmbed{embed},
+				Flags:  discordgo.MessageFlagsEphemeral,
 			},
 		}); err != nil {
 			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("help: failed to send response")

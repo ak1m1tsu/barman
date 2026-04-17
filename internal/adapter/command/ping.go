@@ -20,6 +20,7 @@ func NewPingCommand() (*discordgo.ApplicationCommand, Handler) {
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Pong! Задержка: %s", latency),
+				Flags:   discordgo.MessageFlagsEphemeral,
 			},
 		}); err != nil {
 			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("ping: failed to send response")
