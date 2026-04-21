@@ -23,6 +23,12 @@ var reactionOrder = []string{
 	"hug", "pat", "kiss", "cuddle", "feed", "wave", "wink", "smile",
 	"highfive", "handshake", "poke", "tickle", "lick", "bite", "slap", "punch",
 	"love", "nuzzle", "shy", "nervous", "nosebleed", "brofist", "headbang", "sad", "peek",
+	"sex",
+}
+
+// nsfwReactions lists reaction types that require an age-restricted (NSFW) channel.
+var nsfwReactions = map[string]bool{
+	"sex": true,
 }
 
 var reactionsMeta = map[string]reactionMeta{
@@ -51,6 +57,7 @@ var reactionsMeta = map[string]reactionMeta{
 	"headbang":  {"%s хэдбэнгит с %s", "%s хэдбэнгит"},
 	"sad":       {"%s грустит с %s", "%s грустит"},
 	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
+	"sex":       {"%s занимается сексом с %s", "%s занимается сексом"},
 }
 
 func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
@@ -94,6 +101,14 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 		opts := i.ApplicationCommandData().Options
 		reactionType := opts[0].StringValue()
 		meta := reactionsMeta[reactionType]
+
+		if nsfwReactions[reactionType] {
+			ch, err := s.Channel(i.ChannelID)
+			if err != nil || !ch.NSFW {
+				respondEphemeral(s, i, "Эта реакция доступна только в NSFW-каналах.")
+				return
+			}
+		}
 
 		actor := memberDisplayName(i.Member)
 

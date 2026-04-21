@@ -47,6 +47,12 @@ var msgReactions = map[string]msgReactionMeta{
 	"headbang":  {"%s хэдбэнгит с %s", "%s хэдбэнгит"},
 	"sad":       {"%s грустит с %s", "%s грустит"},
 	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
+	"sex":       {"%s занимается сексом с %s", "%s занимается сексом"},
+}
+
+// msgNSFWReactions lists reaction types that require an age-restricted (NSFW) channel.
+var msgNSFWReactions = map[string]bool{
+	"sex": true,
 }
 
 // NewMessageReactHandler handles prefix-based react commands.
@@ -83,6 +89,14 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 		meta, ok := msgReactions[reactionType]
 		if !ok {
 			return
+		}
+
+		if msgNSFWReactions[reactionType] {
+			ch, err := s.Channel(msg.ChannelID)
+			if err != nil || !ch.NSFW {
+				s.ChannelMessageSendReply(msg.ChannelID, "Эта реакция доступна только в NSFW-каналах.", msg.Reference()) //nolint:errcheck
+				return
+			}
 		}
 
 		log := logrus.WithFields(logrus.Fields{
