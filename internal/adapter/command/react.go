@@ -57,10 +57,10 @@ var reactionsMeta = map[string]reactionMeta{
 	"headbang":  {"%s хэдбэнгит с %s", "%s хэдбэнгит"},
 	"sad":       {"%s грустит с %s", "%s грустит"},
 	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
-	"myatniy":   {"%s мятничает с %s", "%s мятничает"},
+	"myatniy":   {"%s делает мятный %s", "%s делает мятный всем"},
 }
 
-func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, nsfwAllowedIDs []string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
+func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, nsfwAllowedUsers map[string][]string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
 	choices := make([]*discordgo.ApplicationCommandOptionChoice, 0, len(reactionOrder))
 	for _, key := range reactionOrder {
 		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
@@ -102,14 +102,10 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetch
 		reactionType := opts[0].StringValue()
 		meta := reactionsMeta[reactionType]
 
-		if nsfwReactions[reactionType] {
-			if !slices.Contains(nsfwAllowedIDs, i.Member.User.ID) {
+		isOwner := slices.Contains(ownerIDs, i.Member.User.ID)
+		if nsfwReactions[reactionType] && !isOwner {
+			if _, ok := nsfwAllowedUsers[i.Member.User.ID]; !ok {
 				respondEphemeral(s, i, "У тебя нет доступа к этой реакции.")
-				return
-			}
-			ch, err := s.Channel(i.ChannelID)
-			if err != nil || !ch.NSFW {
-				respondEphemeral(s, i, "Эта реакция доступна только в NSFW-каналах.")
 				return
 			}
 		}
@@ -136,6 +132,21 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetch
 					return
 				}
 				targetName = memberDisplayName(targetMember)
+			}
+		}
+
+		if nsfwReactions[reactionType] {
+			if !isOwner {
+				allowedTargets := nsfwAllowedUsers[i.Member.User.ID]
+				if targetID != "" && !slices.Contains(allowedTargets, targetID) {
+					respondEphemeral(s, i, "Этот пользователь не может быть целью этой реакции.")
+					return
+				}
+			}
+			ch, err := s.Channel(i.ChannelID)
+			if err != nil || !ch.NSFW {
+				respondEphemeral(s, i, "Эта реакция доступна только в NSFW-каналах.")
+				return
 			}
 		}
 

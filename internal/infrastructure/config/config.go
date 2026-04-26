@@ -18,12 +18,13 @@ type Config struct {
 }
 
 type DiscordConfig struct {
-	Token          string   `yaml:"token"`
-	AppID          string   `yaml:"app_id"`
-	GuildID        string   `yaml:"guild_id"`
-	Prefix         string   `yaml:"prefix"`
-	OwnerIDs       []string `yaml:"owner_ids"`
-	NSFWAllowedIDs []string `yaml:"nsfw_allowed_ids"`
+	Token    string   `yaml:"token"`
+	AppID    string   `yaml:"app_id"`
+	GuildID  string   `yaml:"guild_id"`
+	Prefix   string   `yaml:"prefix"`
+	OwnerIDs []string `yaml:"owner_ids"`
+	// NSFWAllowedUsers maps user ID → list of target user IDs they may use NSFW reactions on.
+	NSFWAllowedUsers map[string][]string `yaml:"nsfw_allowed_users"`
 }
 
 type DatabaseConfig struct {

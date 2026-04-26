@@ -89,7 +89,7 @@ func New(cfg *config.Config) (*App, error) {
 	registry.Register(command.NewUserInfoCommand())
 	registry.Register(command.NewAutoRoleCommand(getAutoRole, handlerTimeout))
 	registry.Register(command.NewReactionsCommand(getStats, cfg.Discord.OwnerIDs, handlerTimeout))
-	registry.Register(command.NewReactCommand(fetchGIF, nsfwFetchGIF, checkAndSet, incrementStat, cfg.Discord.OwnerIDs, cfg.Discord.NSFWAllowedIDs, handlerTimeout))
+	registry.Register(command.NewReactCommand(fetchGIF, nsfwFetchGIF, checkAndSet, incrementStat, cfg.Discord.OwnerIDs, cfg.Discord.NSFWAllowedUsers, handlerTimeout))
 	registry.Register(command.NewPrefixCommand(getPrefix, handlerTimeout))
 
 	// Event handlers
@@ -102,7 +102,7 @@ func New(cfg *config.Config) (*App, error) {
 	if defaultPrefix == "" {
 		defaultPrefix = "!"
 	}
-	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF, nsfwFetchGIF, checkAndSet, incrementStat, cfg.Discord.OwnerIDs, cfg.Discord.NSFWAllowedIDs, handlerTimeout))
+	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF, nsfwFetchGIF, checkAndSet, incrementStat, cfg.Discord.OwnerIDs, cfg.Discord.NSFWAllowedUsers, handlerTimeout))
 
 	log.Info("all dependencies wired")
 

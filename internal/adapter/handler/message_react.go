@@ -47,7 +47,7 @@ var msgReactions = map[string]msgReactionMeta{
 	"headbang":  {"%s хэдбэнгит с %s", "%s хэдбэнгит"},
 	"sad":       {"%s грустит с %s", "%s грустит"},
 	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
-	"myatniy":   {"%s мятничает с %s", "%s мятничает"},
+	"myatniy":   {"%s делает мятный %s", "%s делает мятный всем"},
 }
 
 // msgNSFWReactions lists reaction types that require an age-restricted (NSFW) channel.
@@ -64,7 +64,7 @@ var msgNSFWReactions = map[string]bool{
 //
 // Priority: explicit mention > reply context > no target.
 // The guild-specific prefix is fetched at runtime from repo; defaultPrefix is used as fallback.
-func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, nsfwAllowedIDs []string, timeout time.Duration) func(*discordgo.Session, *discordgo.MessageCreate) {
+func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, nsfwAllowedUsers map[string][]string, timeout time.Duration) func(*discordgo.Session, *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, msg *discordgo.MessageCreate) {
 		if msg.Author == nil || msg.Author.Bot {
 			return
@@ -91,14 +91,10 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 			return
 		}
 
-		if msgNSFWReactions[reactionType] {
-			if !slices.Contains(nsfwAllowedIDs, msg.Author.ID) {
+		isOwner := slices.Contains(ownerIDs, msg.Author.ID)
+		if msgNSFWReactions[reactionType] && !isOwner {
+			if _, ok := nsfwAllowedUsers[msg.Author.ID]; !ok {
 				s.ChannelMessageSendReply(msg.ChannelID, "У тебя нет доступа к этой реакции.", msg.Reference()) //nolint:errcheck
-				return
-			}
-			ch, err := s.Channel(msg.ChannelID)
-			if err != nil || !ch.NSFW {
-				s.ChannelMessageSendReply(msg.ChannelID, "Эта реакция доступна только в NSFW-каналах.", msg.Reference()) //nolint:errcheck
 				return
 			}
 		}
@@ -156,6 +152,21 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 						targetName = memberDisplayName(targetMember)
 					}
 				}
+			}
+		}
+
+		if msgNSFWReactions[reactionType] {
+			if !isOwner {
+				allowedTargets := nsfwAllowedUsers[msg.Author.ID]
+				if targetID != "" && !slices.Contains(allowedTargets, targetID) {
+					s.ChannelMessageSendReply(msg.ChannelID, "Этот пользователь не может быть целью этой реакции.", msg.Reference()) //nolint:errcheck
+					return
+				}
+			}
+			ch, err := s.Channel(msg.ChannelID)
+			if err != nil || !ch.NSFW {
+				s.ChannelMessageSendReply(msg.ChannelID, "Эта реакция доступна только в NSFW-каналах.", msg.Reference()) //nolint:errcheck
+				return
 			}
 		}
 

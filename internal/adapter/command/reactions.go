@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -34,13 +35,35 @@ func NewReactionsCommand(getStats *reactionuc.GetStatsUseCase, ownerIDs []string
 			stats = map[string]int64{}
 		}
 
-		var sb strings.Builder
+		sfwKeys := make([]string, 0, len(reactionOrder))
+		nsfwKeys := make([]string, 0)
 		for _, key := range reactionOrder {
-			meta := reactionsMeta[key]
-			desc := strings.TrimPrefix(meta.withoutTarget, "%s ")
-			count := stats[key]
-			fmt.Fprintf(&sb, "`%-10s` — %s · **%d**\n", key, desc, count)
+			if nsfwReactions[key] {
+				nsfwKeys = append(nsfwKeys, key)
+			} else {
+				sfwKeys = append(sfwKeys, key)
+			}
 		}
+
+		byCount := func(keys []string) {
+			sort.SliceStable(keys, func(a, b int) bool {
+				return stats[keys[a]] > stats[keys[b]]
+			})
+		}
+		byCount(sfwKeys)
+		byCount(nsfwKeys)
+
+		writeSection := func(sb *strings.Builder, keys []string) {
+			for _, key := range keys {
+				meta := reactionsMeta[key]
+				desc := strings.TrimPrefix(meta.withoutTarget, "%s ")
+				fmt.Fprintf(sb, "`%-10s` — %s · **%d**\n", key, desc, stats[key])
+			}
+		}
+
+		var sfwSb, nsfwSb strings.Builder
+		writeSection(&sfwSb, sfwKeys)
+		writeSection(&nsfwSb, nsfwKeys)
 
 		var flags discordgo.MessageFlags
 		if i.Member == nil || !slices.Contains(ownerIDs, i.Member.User.ID) {
@@ -52,9 +75,12 @@ func NewReactionsCommand(getStats *reactionuc.GetStatsUseCase, ownerIDs []string
 			Data: &discordgo.InteractionResponseData{
 				Embeds: []*discordgo.MessageEmbed{
 					{
-						Title:       "Доступные реакции",
-						Description: sb.String(),
-						Color:       0x5865F2,
+						Title: "Доступные реакции",
+						Color: 0x5865F2,
+						Fields: []*discordgo.MessageEmbedField{
+							{Name: "SFW", Value: sfwSb.String(), Inline: false},
+							{Name: "NSFW 🔞", Value: nsfwSb.String(), Inline: false},
+						},
 						Footer: &discordgo.MessageEmbedFooter{
 							Text: "Используй /react <тип> или !<тип>",
 						},
