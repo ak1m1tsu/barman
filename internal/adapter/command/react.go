@@ -23,12 +23,12 @@ var reactionOrder = []string{
 	"hug", "pat", "kiss", "cuddle", "feed", "wave", "wink", "smile",
 	"highfive", "handshake", "poke", "tickle", "lick", "bite", "slap", "punch",
 	"love", "nuzzle", "shy", "nervous", "nosebleed", "brofist", "headbang", "sad", "peek",
-	"sex",
+	"myatniy",
 }
 
 // nsfwReactions lists reaction types that require an age-restricted (NSFW) channel.
 var nsfwReactions = map[string]bool{
-	"sex": true,
+	"myatniy": true,
 }
 
 var reactionsMeta = map[string]reactionMeta{
@@ -57,10 +57,10 @@ var reactionsMeta = map[string]reactionMeta{
 	"headbang":  {"%s хэдбэнгит с %s", "%s хэдбэнгит"},
 	"sad":       {"%s грустит с %s", "%s грустит"},
 	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
-	"sex":       {"%s занимается сексом с %s", "%s занимается сексом"},
+	"myatniy":   {"%s мятничает с %s", "%s мятничает"},
 }
 
-func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
+func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, nsfwAllowedIDs []string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
 	choices := make([]*discordgo.ApplicationCommandOptionChoice, 0, len(reactionOrder))
 	for _, key := range reactionOrder {
 		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
@@ -103,6 +103,10 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 		meta := reactionsMeta[reactionType]
 
 		if nsfwReactions[reactionType] {
+			if !slices.Contains(nsfwAllowedIDs, i.Member.User.ID) {
+				respondEphemeral(s, i, "У тебя нет доступа к этой реакции.")
+				return
+			}
 			ch, err := s.Channel(i.ChannelID)
 			if err != nil || !ch.NSFW {
 				respondEphemeral(s, i, "Эта реакция доступна только в NSFW-каналах.")
@@ -168,7 +172,11 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 			}
 		}
 
-		gifURL, err := fetchGIF.Execute(ctx, reactionType)
+		gif := fetchGIF
+		if nsfwReactions[reactionType] {
+			gif = nsfwFetchGIF
+		}
+		gifURL, err := gif.Execute(ctx, reactionType)
 		if err != nil {
 			log.WithError(err).Error("failed to fetch reaction gif")
 			errMsg := "Не удалось получить GIF. Попробуйте позже."

@@ -47,12 +47,12 @@ var msgReactions = map[string]msgReactionMeta{
 	"headbang":  {"%s хэдбэнгит с %s", "%s хэдбэнгит"},
 	"sad":       {"%s грустит с %s", "%s грустит"},
 	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
-	"sex":       {"%s занимается сексом с %s", "%s занимается сексом"},
+	"myatniy":   {"%s мятничает с %s", "%s мятничает"},
 }
 
 // msgNSFWReactions lists reaction types that require an age-restricted (NSFW) channel.
 var msgNSFWReactions = map[string]bool{
-	"sex": true,
+	"myatniy": true,
 }
 
 // NewMessageReactHandler handles prefix-based react commands.
@@ -64,7 +64,7 @@ var msgNSFWReactions = map[string]bool{
 //
 // Priority: explicit mention > reply context > no target.
 // The guild-specific prefix is fetched at runtime from repo; defaultPrefix is used as fallback.
-func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, timeout time.Duration) func(*discordgo.Session, *discordgo.MessageCreate) {
+func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, nsfwAllowedIDs []string, timeout time.Duration) func(*discordgo.Session, *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, msg *discordgo.MessageCreate) {
 		if msg.Author == nil || msg.Author.Bot {
 			return
@@ -92,6 +92,10 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 		}
 
 		if msgNSFWReactions[reactionType] {
+			if !slices.Contains(nsfwAllowedIDs, msg.Author.ID) {
+				s.ChannelMessageSendReply(msg.ChannelID, "У тебя нет доступа к этой реакции.", msg.Reference()) //nolint:errcheck
+				return
+			}
 			ch, err := s.Channel(msg.ChannelID)
 			if err != nil || !ch.NSFW {
 				s.ChannelMessageSendReply(msg.ChannelID, "Эта реакция доступна только в NSFW-каналах.", msg.Reference()) //nolint:errcheck
@@ -164,7 +168,11 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 		}
 
 		// Fetch GIF
-		gifURL, err := fetchGIF.Execute(ctx, reactionType)
+		gif := fetchGIF
+		if msgNSFWReactions[reactionType] {
+			gif = nsfwFetchGIF
+		}
+		gifURL, err := gif.Execute(ctx, reactionType)
 		if err != nil {
 			log.WithError(err).Error("failed to fetch reaction gif")
 			s.ChannelMessageSendReply(msg.ChannelID, "Не удалось получить GIF. Попробуйте позже.", msg.Reference()) //nolint:errcheck

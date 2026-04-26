@@ -5,6 +5,7 @@ discord:
   prefix: "!"   # prefix for message-based commands (e.g. !react hug)
   owner_ids:    # user IDs that bypass reaction cooldown
     - "324462804939833345"
+  nsfw_allowed_ids: []  # user IDs allowed to use NSFW reactions (e.g. myatniy)
 
 database:
   path: "barman.db"
