@@ -11,6 +11,7 @@ type SetPrefixUseCase struct {
 	repo guild.Repository
 }
 
+// NewSetPrefix returns a SetPrefixUseCase backed by the given repository.
 func NewSetPrefix(repo guild.Repository) *SetPrefixUseCase {
 	return &SetPrefixUseCase{repo: repo}
 }

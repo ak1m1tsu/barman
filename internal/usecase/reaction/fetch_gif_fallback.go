@@ -9,6 +9,8 @@ type FetchGIFWithFallbackUseCase struct {
 	fallback GIFFetcher
 }
 
+// NewFetchGIFWithFallback returns a FetchGIFWithFallbackUseCase that queries primary
+// and fallback in parallel and returns the primary result unless it fails.
 func NewFetchGIFWithFallback(primary, fallback GIFFetcher) *FetchGIFWithFallbackUseCase {
 	return &FetchGIFWithFallbackUseCase{primary: primary, fallback: fallback}
 }

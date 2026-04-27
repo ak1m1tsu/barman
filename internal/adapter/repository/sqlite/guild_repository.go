@@ -13,6 +13,7 @@ type GuildRepository struct {
 	db *sql.DB
 }
 
+// NewGuildRepository returns a GuildRepository backed by the given SQLite connection.
 func NewGuildRepository(db *sql.DB) *GuildRepository {
 	return &GuildRepository{db: db}
 }

@@ -11,6 +11,9 @@ import (
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 )
 
+// NewAutoRoleCommand returns the /autorole slash command and its handler.
+// The handler shows the current auto-role and presents buttons to change or remove it;
+// requires the ManageRoles permission.
 func NewAutoRoleCommand(getUC *guilduc.GetAutoRoleUseCase, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
 	cmd := &discordgo.ApplicationCommand{
 		Name:        "autorole",

@@ -11,6 +11,7 @@ type GetAutoRoleUseCase struct {
 	repo guild.Repository
 }
 
+// NewGetAutoRole returns a GetAutoRoleUseCase backed by the given repository.
 func NewGetAutoRole(repo guild.Repository) *GetAutoRoleUseCase {
 	return &GetAutoRoleUseCase{repo: repo}
 }

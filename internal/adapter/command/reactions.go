@@ -13,6 +13,9 @@ import (
 	reactionuc "github.com/ak1m1tsu/barman/internal/usecase/reaction"
 )
 
+// NewReactionsCommand returns the /reactions slash command and its handler.
+// The handler shows a paginated embed with one reaction card per page.
+// The response is public for owner IDs and ephemeral for all other users.
 func NewReactionsCommand(getStats *reactionuc.GetStatsUseCase, ownerIDs []string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
 	cmd := &discordgo.ApplicationCommand{
 		Name:        "reactions",
@@ -74,7 +77,7 @@ func BuildReactionCard(index int, stats map[string]int64) *discordgo.MessageEmbe
 
 	return &discordgo.MessageEmbed{
 		Title: fmt.Sprintf("%s %s", emoji, key),
-		Color: 0x5865F2,
+		Color: ColorDiscordBranding,
 		Fields: []*discordgo.MessageEmbedField{
 			{Name: "Команда", Value: fmt.Sprintf("`/react %s`  или  `!%s`", key, key), Inline: false},
 			{Name: "Описание", Value: desc, Inline: true},

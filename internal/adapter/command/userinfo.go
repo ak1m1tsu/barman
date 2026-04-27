@@ -9,6 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// NewUserInfoCommand returns the /userinfo slash command and its handler.
+// When called without an argument the handler shows information about the invoking member.
 func NewUserInfoCommand() (*discordgo.ApplicationCommand, Handler) {
 	cmd := &discordgo.ApplicationCommand{
 		Name:        "userinfo",
@@ -64,7 +66,7 @@ func NewUserInfoCommand() (*discordgo.ApplicationCommand, Handler) {
 
 		embed := &discordgo.MessageEmbed{
 			Title: target.Username,
-			Color: 0x5865F2,
+			Color: ColorDiscordBranding,
 			Thumbnail: &discordgo.MessageEmbedThumbnail{
 				URL: target.AvatarURL("256"),
 			},

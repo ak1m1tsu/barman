@@ -56,6 +56,9 @@ var ReactionsMeta = map[string]ReactionMeta{
 	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
 }
 
+// NewReactCommand returns the /react slash command and its handler.
+// The handler fetches a GIF from the primary or fallback source, sends it as an embed,
+// and triggers a reciprocal bot reaction when the target is the bot itself (subject to cooldown).
 func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
 	choices := make([]*discordgo.ApplicationCommandOptionChoice, 0, len(ReactionOrder))
 	for _, key := range ReactionOrder {
@@ -98,7 +101,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 		reactionType := opts[0].StringValue()
 		meta := ReactionsMeta[reactionType]
 
-		actor := memberDisplayName(i.Member)
+		actor := MemberDisplayName(i.Member)
 
 		// Resolve target
 		var targetID string
@@ -119,7 +122,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 					respondEphemeral(s, i, "Не удалось получить информацию о пользователе.")
 					return
 				}
-				targetName = memberDisplayName(targetMember)
+				targetName = MemberDisplayName(targetMember)
 			}
 		}
 
@@ -228,7 +231,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 				return
 			}
 
-			botName := memberDisplayName(&discordgo.Member{User: s.State.User})
+			botName := MemberDisplayName(&discordgo.Member{User: s.State.User})
 			botSentence := fmt.Sprintf(meta.WithTarget, botName, actor)
 			if _, err := s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
 				Reference: respMsg.Reference(),
@@ -246,8 +249,10 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 	return cmd, handler
 }
 
-// memberDisplayName returns the best available display name for a guild member.
-func memberDisplayName(m *discordgo.Member) string {
+// MemberDisplayName returns the best available display name for a guild member:
+// server nickname > global display name > username. Returns "кто-то" when the
+// member has no user attached (e.g. a synthetic member object).
+func MemberDisplayName(m *discordgo.Member) string {
 	if m.Nick != "" {
 		return m.Nick
 	}

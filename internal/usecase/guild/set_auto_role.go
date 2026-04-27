@@ -11,6 +11,7 @@ type SetAutoRoleUseCase struct {
 	repo guild.Repository
 }
 
+// NewSetAutoRole returns a SetAutoRoleUseCase backed by the given repository.
 func NewSetAutoRole(repo guild.Repository) *SetAutoRoleUseCase {
 	return &SetAutoRoleUseCase{repo: repo}
 }

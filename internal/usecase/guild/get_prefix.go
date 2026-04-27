@@ -12,6 +12,7 @@ type GetPrefixUseCase struct {
 	repo guild.Repository
 }
 
+// NewGetPrefix returns a GetPrefixUseCase backed by the given repository.
 func NewGetPrefix(repo guild.Repository) *GetPrefixUseCase {
 	return &GetPrefixUseCase{repo: repo}
 }

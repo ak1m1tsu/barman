@@ -11,6 +11,7 @@ type RemoveAutoRoleUseCase struct {
 	repo guild.Repository
 }
 
+// NewRemoveAutoRole returns a RemoveAutoRoleUseCase backed by the given repository.
 func NewRemoveAutoRole(repo guild.Repository) *RemoveAutoRoleUseCase {
 	return &RemoveAutoRoleUseCase{repo: repo}
 }

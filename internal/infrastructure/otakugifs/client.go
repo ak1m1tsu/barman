@@ -16,6 +16,7 @@ type Client struct {
 	baseURL string
 }
 
+// NewClient returns a Client targeting the default otakugifs.xyz API URL with a 5-second HTTP timeout.
 func NewClient() *Client {
 	return &Client{http: &http.Client{Timeout: 5 * time.Second}, baseURL: baseURL}
 }
@@ -36,7 +37,7 @@ func (c *Client) Fetch(ctx context.Context, reaction string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("otakugifs: %w", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("otakugifs: status %d", resp.StatusCode)

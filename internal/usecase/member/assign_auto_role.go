@@ -17,6 +17,8 @@ type AssignAutoRoleUseCase struct {
 	assigner RoleAssigner
 }
 
+// NewAssignAutoRole returns an AssignAutoRoleUseCase that uses repo to look up
+// the configured role and assigner to apply it to the new member.
 func NewAssignAutoRole(repo guild.Repository, assigner RoleAssigner) *AssignAutoRoleUseCase {
 	return &AssignAutoRoleUseCase{repo: repo, assigner: assigner}
 }

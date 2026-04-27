@@ -13,6 +13,7 @@ type GetStatsUseCase struct {
 	repo reactiondomain.StatsRepository
 }
 
+// NewGetStats returns a GetStatsUseCase backed by the given stats repository.
 func NewGetStats(repo reactiondomain.StatsRepository) *GetStatsUseCase {
 	return &GetStatsUseCase{repo: repo}
 }

@@ -8,6 +8,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// NewPingCommand returns the /ping slash command and its handler.
+// The handler responds with the current heartbeat latency of the Discord session.
 func NewPingCommand() (*discordgo.ApplicationCommand, Handler) {
 	cmd := &discordgo.ApplicationCommand{
 		Name:        "ping",

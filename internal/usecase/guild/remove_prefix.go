@@ -11,6 +11,7 @@ type RemovePrefixUseCase struct {
 	repo guild.Repository
 }
 
+// NewRemovePrefix returns a RemovePrefixUseCase backed by the given repository.
 func NewRemovePrefix(repo guild.Repository) *RemovePrefixUseCase {
 	return &RemovePrefixUseCase{repo: repo}
 }

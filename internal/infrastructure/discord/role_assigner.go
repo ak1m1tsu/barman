@@ -11,6 +11,7 @@ type RoleAssigner struct {
 	session *discordgo.Session
 }
 
+// NewRoleAssigner returns a RoleAssigner that uses the given Discord session to assign roles.
 func NewRoleAssigner(session *discordgo.Session) *RoleAssigner {
 	return &RoleAssigner{session: session}
 }

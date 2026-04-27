@@ -16,6 +16,7 @@ type Registry struct {
 	commands []*discordgo.ApplicationCommand
 }
 
+// NewRegistry returns an empty Registry ready for command registration.
 func NewRegistry() *Registry {
 	return &Registry{
 		handlers: make(map[string]Handler),

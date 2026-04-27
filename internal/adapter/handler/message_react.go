@@ -68,7 +68,7 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 			log.WithError(err).Error("failed to fetch actor guild member")
 			return
 		}
-		actor := memberDisplayName(actorMember)
+		actor := command.MemberDisplayName(actorMember)
 
 		// Resolve target: explicit mention > reply context > none
 		var targetID string
@@ -88,7 +88,7 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 					log.WithError(err).Error("failed to fetch target guild member")
 					return
 				}
-				targetName = memberDisplayName(targetMember)
+				targetName = command.MemberDisplayName(targetMember)
 			}
 		} else if msg.MessageReference != nil {
 			// Fall back to reply context
@@ -104,7 +104,7 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 					if err != nil {
 						targetName = refMsg.Author.Username
 					} else {
-						targetName = memberDisplayName(targetMember)
+						targetName = command.MemberDisplayName(targetMember)
 					}
 				}
 			}
@@ -121,7 +121,9 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 		gifURL, err := fetchGIF.Execute(ctx, reactionType)
 		if err != nil {
 			log.WithError(err).Error("failed to fetch reaction gif")
-			s.ChannelMessageSendReply(msg.ChannelID, "Не удалось получить GIF. Попробуйте позже.", msg.Reference()) //nolint:errcheck
+			if _, err := s.ChannelMessageSendReply(msg.ChannelID, "Не удалось получить GIF. Попробуйте позже.", msg.Reference()); err != nil {
+				log.WithError(err).Error("react: failed to send error reply")
+			}
 			return
 		}
 
@@ -163,7 +165,7 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 				return
 			}
 
-			botName := memberDisplayName(&discordgo.Member{User: s.State.User})
+			botName := command.MemberDisplayName(&discordgo.Member{User: s.State.User})
 			botSentence := fmt.Sprintf(meta.WithTarget, botName, actor)
 			if _, err := s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{
 				Reference: msg.Reference(),
@@ -190,18 +192,4 @@ func parseMention(s string) string {
 	s = strings.TrimPrefix(s, "!")
 	s = strings.TrimSuffix(s, ">")
 	return s
-}
-
-// memberDisplayName returns the best available display name for a guild member.
-func memberDisplayName(m *discordgo.Member) string {
-	if m.Nick != "" {
-		return m.Nick
-	}
-	if m.User != nil {
-		if m.User.GlobalName != "" {
-			return m.User.GlobalName
-		}
-		return m.User.Username
-	}
-	return "кто-то"
 }

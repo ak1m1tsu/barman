@@ -10,6 +10,7 @@ type ReactionStatsRepository struct {
 	db *sql.DB
 }
 
+// NewReactionStatsRepository returns a ReactionStatsRepository backed by the given SQLite connection.
 func NewReactionStatsRepository(db *sql.DB) *ReactionStatsRepository {
 	return &ReactionStatsRepository{db: db}
 }

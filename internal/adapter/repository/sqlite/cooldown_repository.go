@@ -12,6 +12,7 @@ type CooldownRepository struct {
 	db *sql.DB
 }
 
+// NewCooldownRepository returns a CooldownRepository backed by the given SQLite connection.
 func NewCooldownRepository(db *sql.DB) *CooldownRepository {
 	return &CooldownRepository{db: db}
 }

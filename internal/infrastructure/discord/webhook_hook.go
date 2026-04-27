@@ -2,6 +2,7 @@ package discord
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -151,9 +152,15 @@ func (h *WebhookHook) send(entry *logrus.Entry) {
 		return
 	}
 
-	resp, err := h.client.Post(h.url, "application/json", bytes.NewReader(body)) //nolint:noctx
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, h.url, bytes.NewReader(body))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := h.client.Do(req)
 	if err != nil || resp == nil {
 		return
 	}
-	resp.Body.Close() //nolint:errcheck
+	_ = resp.Body.Close()
 }
