@@ -10,3 +10,6 @@ database:
 
 timeouts:
   handler: 10s  # timeout for Discord command and event handlers
+
+notifications:
+  error_webhook_url: ""  # Discord webhook URL for error alerts (leave empty to disable)
