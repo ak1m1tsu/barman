@@ -44,9 +44,24 @@ discord:
 
 database:
   path: "barman.db"   # path to SQLite file
+
+notifications:
+  error_webhook_url: ""    # Discord webhook URL for error alerts (leave empty to disable)
+  activity_webhook_url: "" # Discord webhook URL for user-action events (leave empty to disable)
 ```
 
 `configs/config.yaml` is listed in `.gitignore` and is never committed to the repository.
+
+### Webhook notifications
+
+Two optional Discord webhook URLs can be configured:
+
+| Field | What gets sent |
+|---|---|
+| `error_webhook_url` | All `Error` / `Fatal` / `Panic` log entries |
+| `activity_webhook_url` | User actions: slash commands, prefix reactions, member joins, prefix changes, autorole changes |
+
+Leave a field empty to disable that webhook.
 
 ## Development
 

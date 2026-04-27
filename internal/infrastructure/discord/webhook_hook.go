@@ -11,6 +11,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// NotifyField is the logrus field key that marks an Info/Warn entry for delivery
+// to the activity webhook. Handlers add `.WithField("notify", true)` to opt in.
+// The field is stripped from the embed fields before sending.
+const NotifyField = "notify"
+
 type webhookPayload struct {
 	Embeds []webhookEmbed `json:"embeds"`
 }
@@ -29,46 +34,88 @@ type webhookEmbedField struct {
 	Inline bool   `json:"inline"`
 }
 
-var levelMeta = map[logrus.Level]struct {
+type levelMeta struct {
 	title string
 	color int
-}{
+}
+
+var errorLevelMeta = map[logrus.Level]levelMeta{
 	logrus.ErrorLevel: {"🔴 ERROR", 0xED4245},
 	logrus.FatalLevel: {"💀 FATAL", 0x992D22},
 	logrus.PanicLevel: {"☠️ PANIC", 0x992D22},
 }
 
-// WebhookHook is a logrus hook that sends Error/Fatal/Panic entries to a
-// Discord webhook as an embed. Each Fire call dispatches asynchronously so it
-// never blocks the logging caller.
-type WebhookHook struct {
-	url    string
-	client *http.Client
+var activityLevelMeta = map[logrus.Level]levelMeta{
+	logrus.InfoLevel: {"🟢 ACTION", 0x57F287},
 }
 
-// NewWebhookHook creates a WebhookHook that POSTs to the given Discord webhook URL.
-func NewWebhookHook(url string) *WebhookHook {
+// WebhookHook is a logrus hook that sends log entries to a Discord webhook as
+// an embed. Each Fire call dispatches asynchronously so it never blocks the
+// logging caller.
+//
+// Use NewErrorWebhookHook for Error/Fatal/Panic entries, or
+// NewActivityWebhookHook for user-action Info entries (requires the "notify"
+// field to be set).
+type WebhookHook struct {
+	url           string
+	client        *http.Client
+	meta          map[logrus.Level]levelMeta
+	requireNotify bool // when true, Fire only sends if entry.Data["notify"] is set
+}
+
+// NewErrorWebhookHook creates a hook that forwards Error/Fatal/Panic entries
+// to the given Discord webhook URL.
+func NewErrorWebhookHook(url string) *WebhookHook {
 	return &WebhookHook{
 		url:    url,
 		client: &http.Client{Timeout: 5 * time.Second},
+		meta:   errorLevelMeta,
 	}
 }
 
+// NewActivityWebhookHook creates a hook that forwards Info entries to the given
+// Discord webhook URL, but only when the entry contains the "notify" field.
+func NewActivityWebhookHook(url string) *WebhookHook {
+	return &WebhookHook{
+		url:           url,
+		client:        &http.Client{Timeout: 5 * time.Second},
+		meta:          activityLevelMeta,
+		requireNotify: true,
+	}
+}
+
+// NewWebhookHook is kept for backwards compatibility; it behaves like NewErrorWebhookHook.
+func NewWebhookHook(url string) *WebhookHook {
+	return NewErrorWebhookHook(url)
+}
+
 func (h *WebhookHook) Levels() []logrus.Level {
-	return []logrus.Level{logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel}
+	levels := make([]logrus.Level, 0, len(h.meta))
+	for l := range h.meta {
+		levels = append(levels, l)
+	}
+	return levels
 }
 
 func (h *WebhookHook) Fire(entry *logrus.Entry) error {
+	if h.requireNotify {
+		if _, ok := entry.Data[NotifyField]; !ok {
+			return nil
+		}
+	}
 	go h.send(entry)
 	return nil
 }
 
 func (h *WebhookHook) send(entry *logrus.Entry) {
-	meta := levelMeta[entry.Level]
+	meta := h.meta[entry.Level]
 
 	fields := make([]webhookEmbedField, 0, len(entry.Data))
 	keys := make([]string, 0, len(entry.Data))
 	for k := range entry.Data {
+		if k == NotifyField {
+			continue
+		}
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)

@@ -94,6 +94,7 @@ func NewAutoRoleInteractionHandler(
 				respondComponentEphemeral(s, i, "Ошибка при удалении авто-роли.")
 				return
 			}
+			log.WithField("notify", true).Info("autorole removed")
 			respondComponentEphemeral(s, i, "Авто-роль удалена.")
 
 		case autoroleSelectID:
@@ -107,6 +108,7 @@ func NewAutoRoleInteractionHandler(
 				respondComponentEphemeral(s, i, "Ошибка при установке авто-роли.")
 				return
 			}
+			log.WithFields(logrus.Fields{"role_id": roleID, "notify": true}).Info("autorole set")
 
 			g, err := getUC.Execute(ctx, i.GuildID)
 			if err != nil || g == nil {

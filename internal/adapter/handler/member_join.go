@@ -17,6 +17,7 @@ func NewMemberJoinHandler(uc *memberuc.AssignAutoRoleUseCase, timeout time.Durat
 		log := logrus.WithFields(logrus.Fields{
 			"guild_id": e.GuildID,
 			"user_id":  e.User.ID,
+			"notify":   true,
 		})
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()

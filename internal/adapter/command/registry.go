@@ -43,6 +43,7 @@ func (r *Registry) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) 
 	log := logrus.WithFields(logrus.Fields{
 		"command":  commandString(data),
 		"guild_id": i.GuildID,
+		"notify":   true,
 	})
 	if i.Member != nil && i.Member.User != nil {
 		log = log.WithField("user_id", i.Member.User.ID)
