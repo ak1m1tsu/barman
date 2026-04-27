@@ -121,7 +121,9 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 		gifURL, err := fetchGIF.Execute(ctx, reactionType)
 		if err != nil {
 			log.WithError(err).Error("failed to fetch reaction gif")
-			s.ChannelMessageSendReply(msg.ChannelID, "Не удалось получить GIF. Попробуйте позже.", msg.Reference()) //nolint:errcheck
+			if _, err := s.ChannelMessageSendReply(msg.ChannelID, "Не удалось получить GIF. Попробуйте позже.", msg.Reference()); err != nil {
+				log.WithError(err).Error("react: failed to send error reply")
+			}
 			return
 		}
 

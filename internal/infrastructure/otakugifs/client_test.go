@@ -27,7 +27,7 @@ func TestClient_Fetch(t *testing.T) {
 			assert.Equal(t, "hug", r.URL.Query().Get("reaction"))
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"url":"https://cdn.otakugifs.xyz/gifs/hug/1.gif"}`)) //nolint:errcheck
+			_, _ = w.Write([]byte(`{"url":"https://cdn.otakugifs.xyz/gifs/hug/1.gif"}`))
 		}))
 
 		url, err := c.Fetch(ctx, "hug")
@@ -48,7 +48,7 @@ func TestClient_Fetch(t *testing.T) {
 		c, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"url":""}`)) //nolint:errcheck
+			_, _ = w.Write([]byte(`{"url":""}`))
 		}))
 
 		_, err := c.Fetch(ctx, "hug")
@@ -58,7 +58,7 @@ func TestClient_Fetch(t *testing.T) {
 	t.Run("returns error on malformed json", func(t *testing.T) {
 		c, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`not json`)) //nolint:errcheck
+			_, _ = w.Write([]byte(`not json`))
 		}))
 
 		_, err := c.Fetch(ctx, "hug")

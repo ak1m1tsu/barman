@@ -40,7 +40,9 @@ func New(cfg *config.Config) (*App, error) {
 
 	bot, err := discord.New(cfg.Discord.Token, cfg.Discord.AppID, cfg.Discord.GuildID)
 	if err != nil {
-		db.Close() //nolint:errcheck // best-effort cleanup on init failure
+		if cerr := db.Close(); cerr != nil {
+			logrus.WithError(cerr).Warn("app: failed to close database during init cleanup")
+		}
 		return nil, fmt.Errorf("app: create discord bot: %w", err)
 	}
 	log.Info("discord bot created")

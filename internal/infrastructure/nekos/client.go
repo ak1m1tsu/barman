@@ -31,7 +31,7 @@ func (c *Client) Fetch(ctx context.Context, reaction string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("nekos: %w", err)
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("nekos: status %d", resp.StatusCode)
