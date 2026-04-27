@@ -12,9 +12,14 @@ const DefaultHandlerTimeout = 10 * time.Second
 
 // Config holds all application configuration loaded from a YAML file.
 type Config struct {
-	Discord  DiscordConfig  `yaml:"discord"`
-	Database DatabaseConfig `yaml:"database"`
-	Timeouts TimeoutsConfig `yaml:"timeouts"`
+	Discord       DiscordConfig       `yaml:"discord"`
+	Database      DatabaseConfig      `yaml:"database"`
+	Timeouts      TimeoutsConfig      `yaml:"timeouts"`
+	Notifications NotificationsConfig `yaml:"notifications"`
+}
+
+type NotificationsConfig struct {
+	ErrorWebhookURL string `yaml:"error_webhook_url"`
 }
 
 type DiscordConfig struct {
