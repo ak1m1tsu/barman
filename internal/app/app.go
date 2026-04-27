@@ -14,7 +14,6 @@ import (
 	"github.com/ak1m1tsu/barman/internal/infrastructure/discord"
 	nekosclient "github.com/ak1m1tsu/barman/internal/infrastructure/nekos"
 	otakugifsclient "github.com/ak1m1tsu/barman/internal/infrastructure/otakugifs"
-	waifupicsclient "github.com/ak1m1tsu/barman/internal/infrastructure/waifupics"
 	cooldownuc "github.com/ak1m1tsu/barman/internal/usecase/cooldown"
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 	memberuc "github.com/ak1m1tsu/barman/internal/usecase/member"
@@ -69,9 +68,6 @@ func New(cfg *config.Config) (*App, error) {
 	otakugifs := otakugifsclient.NewClient()
 	fetchGIF := reactionuc.NewFetchGIFWithFallback(nekos, otakugifs)
 
-	waifupics := waifupicsclient.NewClient()
-	nsfwFetchGIF := reactionuc.NewFetchGIFWithFallback(waifupics, waifupics)
-
 	checkAndSet := cooldownuc.NewCheckAndSet(cooldownRepo)
 	incrementStat := reactionuc.NewIncrementStat(reactionStatsRepo)
 	getStats := reactionuc.NewGetStats(reactionStatsRepo)
@@ -89,7 +85,7 @@ func New(cfg *config.Config) (*App, error) {
 	registry.Register(command.NewUserInfoCommand())
 	registry.Register(command.NewAutoRoleCommand(getAutoRole, handlerTimeout))
 	registry.Register(command.NewReactionsCommand(getStats, cfg.Discord.OwnerIDs, handlerTimeout))
-	registry.Register(command.NewReactCommand(fetchGIF, nsfwFetchGIF, checkAndSet, incrementStat, cfg.Discord.OwnerIDs, cfg.Discord.NSFWAllowedUsers, handlerTimeout))
+	registry.Register(command.NewReactCommand(fetchGIF, checkAndSet, incrementStat, cfg.Discord.OwnerIDs, handlerTimeout))
 	registry.Register(command.NewPrefixCommand(getPrefix, handlerTimeout))
 
 	// Event handlers
@@ -102,7 +98,8 @@ func New(cfg *config.Config) (*App, error) {
 	if defaultPrefix == "" {
 		defaultPrefix = "!"
 	}
-	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF, nsfwFetchGIF, checkAndSet, incrementStat, cfg.Discord.OwnerIDs, cfg.Discord.NSFWAllowedUsers, handlerTimeout))
+	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF, checkAndSet, incrementStat, cfg.Discord.OwnerIDs, handlerTimeout))
+	bot.Session.AddHandler(handler.NewReactionsInteractionHandler(getStats, handlerTimeout))
 
 	log.Info("all dependencies wired")
 

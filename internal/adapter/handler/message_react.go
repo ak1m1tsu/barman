@@ -11,49 +11,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
+	"github.com/ak1m1tsu/barman/internal/adapter/command"
 	guilddomain "github.com/ak1m1tsu/barman/internal/domain/guild"
 	cooldownuc "github.com/ak1m1tsu/barman/internal/usecase/cooldown"
 	reactionuc "github.com/ak1m1tsu/barman/internal/usecase/reaction"
 )
-
-type msgReactionMeta struct {
-	withTarget    string
-	withoutTarget string
-}
-
-var msgReactions = map[string]msgReactionMeta{
-	"hug":       {"%s обнимает %s", "%s обнимает всех"},
-	"pat":       {"%s гладит %s", "%s гладит всех"},
-	"kiss":      {"%s целует %s", "%s целует всех"},
-	"cuddle":    {"%s прижимается к %s", "%s прижимается ко всем"},
-	"feed":      {"%s кормит %s", "%s кормит всех"},
-	"wave":      {"%s машет %s", "%s машет всем"},
-	"wink":      {"%s подмигивает %s", "%s подмигивает всем"},
-	"smile":     {"%s улыбается %s", "%s улыбается всем"},
-	"highfive":  {"%s даёт пять %s", "%s даёт пять всем"},
-	"handshake": {"%s жмёт руку %s", "%s жмёт руку всем"},
-	"poke":      {"%s тыкает %s", "%s тыкает всех"},
-	"tickle":    {"%s щекочет %s", "%s щекочет всех"},
-	"lick":      {"%s лижет %s", "%s лижет всех"},
-	"bite":      {"%s кусает %s", "%s кусает всех"},
-	"slap":      {"%s даёт пощёчину %s", "%s даёт пощёчину всем"},
-	"punch":     {"%s бьёт %s", "%s бьёт всех"},
-	"love":      {"%s любит %s", "%s любит всех"},
-	"nuzzle":    {"%s тыкается носом в %s", "%s тыкается носом"},
-	"shy":       {"%s стесняется перед %s", "%s стесняется"},
-	"nervous":   {"%s нервничает перед %s", "%s нервничает"},
-	"nosebleed": {"%s краснеет от %s", "%s краснеет"},
-	"brofist":   {"%s бьёт кулаком %s", "%s бьёт кулаком"},
-	"headbang":  {"%s хэдбэнгит с %s", "%s хэдбэнгит"},
-	"sad":       {"%s грустит с %s", "%s грустит"},
-	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
-	"myatniy":   {"%s делает мятный %s", "%s делает мятный всем"},
-}
-
-// msgNSFWReactions lists reaction types that require an age-restricted (NSFW) channel.
-var msgNSFWReactions = map[string]bool{
-	"myatniy": true,
-}
 
 // NewMessageReactHandler handles prefix-based react commands.
 // Supported formats:
@@ -64,7 +26,7 @@ var msgNSFWReactions = map[string]bool{
 //
 // Priority: explicit mention > reply context > no target.
 // The guild-specific prefix is fetched at runtime from repo; defaultPrefix is used as fallback.
-func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, nsfwAllowedUsers map[string][]string, timeout time.Duration) func(*discordgo.Session, *discordgo.MessageCreate) {
+func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, timeout time.Duration) func(*discordgo.Session, *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, msg *discordgo.MessageCreate) {
 		if msg.Author == nil || msg.Author.Bot {
 			return
@@ -86,17 +48,9 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 		parts := strings.SplitN(remainder, " ", 2)
 
 		reactionType := parts[0]
-		meta, ok := msgReactions[reactionType]
+		meta, ok := command.ReactionsMeta[reactionType]
 		if !ok {
 			return
-		}
-
-		isOwner := slices.Contains(ownerIDs, msg.Author.ID)
-		if msgNSFWReactions[reactionType] && !isOwner {
-			if _, ok := nsfwAllowedUsers[msg.Author.ID]; !ok {
-				s.ChannelMessageSendReply(msg.ChannelID, "У тебя нет доступа к этой реакции.", msg.Reference()) //nolint:errcheck
-				return
-			}
 		}
 
 		log := logrus.WithFields(logrus.Fields{
@@ -155,35 +109,15 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 			}
 		}
 
-		if msgNSFWReactions[reactionType] {
-			if !isOwner {
-				allowedTargets := nsfwAllowedUsers[msg.Author.ID]
-				if targetID != "" && !slices.Contains(allowedTargets, targetID) {
-					s.ChannelMessageSendReply(msg.ChannelID, "Этот пользователь не может быть целью этой реакции.", msg.Reference()) //nolint:errcheck
-					return
-				}
-			}
-			ch, err := s.Channel(msg.ChannelID)
-			if err != nil || !ch.NSFW {
-				s.ChannelMessageSendReply(msg.ChannelID, "Эта реакция доступна только в NSFW-каналах.", msg.Reference()) //nolint:errcheck
-				return
-			}
-		}
-
 		// Build sentence
 		var sentence string
 		if targetName == "" {
-			sentence = fmt.Sprintf(meta.withoutTarget, actor)
+			sentence = fmt.Sprintf(meta.WithoutTarget, actor)
 		} else {
-			sentence = fmt.Sprintf(meta.withTarget, actor, targetName)
+			sentence = fmt.Sprintf(meta.WithTarget, actor, targetName)
 		}
 
-		// Fetch GIF
-		gif := fetchGIF
-		if msgNSFWReactions[reactionType] {
-			gif = nsfwFetchGIF
-		}
-		gifURL, err := gif.Execute(ctx, reactionType)
+		gifURL, err := fetchGIF.Execute(ctx, reactionType)
 		if err != nil {
 			log.WithError(err).Error("failed to fetch reaction gif")
 			s.ChannelMessageSendReply(msg.ChannelID, "Не удалось получить GIF. Попробуйте позже.", msg.Reference()) //nolint:errcheck
@@ -229,7 +163,7 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 			}
 
 			botName := memberDisplayName(&discordgo.Member{User: s.State.User})
-			botSentence := fmt.Sprintf(meta.withTarget, botName, actor)
+			botSentence := fmt.Sprintf(meta.WithTarget, botName, actor)
 			if _, err := s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{
 				Reference: msg.Reference(),
 				Embed: &discordgo.MessageEmbed{

@@ -23,8 +23,6 @@ type DiscordConfig struct {
 	GuildID  string   `yaml:"guild_id"`
 	Prefix   string   `yaml:"prefix"`
 	OwnerIDs []string `yaml:"owner_ids"`
-	// NSFWAllowedUsers maps user ID → list of target user IDs they may use NSFW reactions on.
-	NSFWAllowedUsers map[string][]string `yaml:"nsfw_allowed_users"`
 }
 
 type DatabaseConfig struct {
