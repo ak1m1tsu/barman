@@ -44,9 +44,22 @@ discord:
 
 database:
   path: "barman.db"   # path to SQLite file
+
+notifications:
+  webhook_url: "" # Discord webhook URL for bot notifications (leave empty to disable)
 ```
 
 `configs/config.yaml` is listed in `.gitignore` and is never committed to the repository.
+
+### Webhook notifications
+
+Set `notifications.webhook_url` to a Discord webhook URL to receive bot notifications in a channel.
+Both error alerts and user-action events are delivered to the same webhook:
+
+| Event | Embed colour |
+|---|---|
+| `Error` / `Fatal` / `Panic` | 🔴 Red |
+| Slash commands, prefix reactions, member joins, prefix/autorole changes | 🟢 Green |
 
 ## Development
 

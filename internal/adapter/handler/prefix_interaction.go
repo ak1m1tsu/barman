@@ -85,6 +85,7 @@ func handlePrefixButton(
 			respondComponentEphemeral(s, i, "Ошибка при сбросе префикса.")
 			return
 		}
+		log.WithField("notify", true).Info("prefix reset to default")
 		respondComponentEphemeral(s, i, "Префикс сброшен до глобального значения по умолчанию.")
 	}
 }
@@ -119,6 +120,7 @@ func handlePrefixModal(
 		return
 	}
 
+	log.WithFields(logrus.Fields{"prefix": prefix, "notify": true}).Info("prefix updated")
 	respondComponentEphemeral(s, i, fmt.Sprintf("Префикс изменён на `%s`.", prefix))
 }
 

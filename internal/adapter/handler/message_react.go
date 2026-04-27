@@ -58,6 +58,7 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 			"user_id":  msg.Author.ID,
 			"reaction": reactionType,
 			"command":  "react (prefix)",
+			"notify":   true,
 		})
 		log.Info("command invoked")
 
