@@ -78,13 +78,10 @@ func New(cfg *config.Config) (*App, error) {
 	}
 	log.WithField("handler_timeout", handlerTimeout).Info("timeouts configured")
 
-	if url := cfg.Notifications.ErrorWebhookURL; url != "" {
+	if url := cfg.Notifications.WebhookURL; url != "" {
 		logrus.AddHook(discord.NewErrorWebhookHook(url))
-		log.Info("error webhook notifications enabled")
-	}
-	if url := cfg.Notifications.ActivityWebhookURL; url != "" {
 		logrus.AddHook(discord.NewActivityWebhookHook(url))
-		log.Info("activity webhook notifications enabled")
+		log.Info("webhook notifications enabled")
 	}
 
 	// Commands

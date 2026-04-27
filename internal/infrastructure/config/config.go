@@ -19,8 +19,7 @@ type Config struct {
 }
 
 type NotificationsConfig struct {
-	ErrorWebhookURL    string `yaml:"error_webhook_url"`
-	ActivityWebhookURL string `yaml:"activity_webhook_url"`
+	WebhookURL string `yaml:"webhook_url"`
 }
 
 type DiscordConfig struct {

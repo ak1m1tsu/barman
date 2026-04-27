@@ -46,22 +46,20 @@ database:
   path: "barman.db"   # path to SQLite file
 
 notifications:
-  error_webhook_url: ""    # Discord webhook URL for error alerts (leave empty to disable)
-  activity_webhook_url: "" # Discord webhook URL for user-action events (leave empty to disable)
+  webhook_url: "" # Discord webhook URL for bot notifications (leave empty to disable)
 ```
 
 `configs/config.yaml` is listed in `.gitignore` and is never committed to the repository.
 
 ### Webhook notifications
 
-Two optional Discord webhook URLs can be configured:
+Set `notifications.webhook_url` to a Discord webhook URL to receive bot notifications in a channel.
+Both error alerts and user-action events are delivered to the same webhook:
 
-| Field | What gets sent |
+| Event | Embed colour |
 |---|---|
-| `error_webhook_url` | All `Error` / `Fatal` / `Panic` log entries |
-| `activity_webhook_url` | User actions: slash commands, prefix reactions, member joins, prefix changes, autorole changes |
-
-Leave a field empty to disable that webhook.
+| `Error` / `Fatal` / `Panic` | 🔴 Red |
+| Slash commands, prefix reactions, member joins, prefix/autorole changes | 🟢 Green |
 
 ## Development
 
