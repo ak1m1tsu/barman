@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -54,6 +55,7 @@ var activityLevelMeta = map[logrus.Level]levelMeta{
 // an embed. Each Fire call dispatches asynchronously so it never blocks the
 // logging caller.
 //
+// Call Shutdown to drain all in-flight sends before the process exits.
 // Use NewErrorWebhookHook for Error/Fatal/Panic entries, or
 // NewActivityWebhookHook for user-action Info entries (requires the "notify"
 // field to be set).
@@ -62,6 +64,7 @@ type WebhookHook struct {
 	client        *http.Client
 	meta          map[logrus.Level]levelMeta
 	requireNotify bool // when true, Fire only sends if entry.Data["notify"] is set
+	wg            sync.WaitGroup
 }
 
 // NewErrorWebhookHook creates a hook that forwards Error/Fatal/Panic entries
@@ -104,8 +107,25 @@ func (h *WebhookHook) Fire(entry *logrus.Entry) error {
 			return nil
 		}
 	}
-	go h.send(entry)
+	h.wg.Go(func() { h.send(entry) })
 	return nil
+}
+
+// Shutdown waits for all in-flight send goroutines to finish. It returns
+// ctx.Err() if the context expires before all goroutines complete, allowing
+// the caller to distinguish a clean drain from a forced shutdown.
+func (h *WebhookHook) Shutdown(ctx context.Context) error {
+	done := make(chan struct{})
+	go func() {
+		h.wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (h *WebhookHook) send(entry *logrus.Entry) {
