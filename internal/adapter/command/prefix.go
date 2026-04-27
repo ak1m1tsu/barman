@@ -11,6 +11,9 @@ import (
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 )
 
+// NewPrefixCommand returns the /prefix slash command and its handler.
+// The handler shows the current guild prefix and presents buttons to change or reset it;
+// requires the ManageGuild permission.
 func NewPrefixCommand(getUC *guilduc.GetPrefixUseCase, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
 	cmd := &discordgo.ApplicationCommand{
 		Name:        "prefix",

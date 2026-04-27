@@ -16,6 +16,7 @@ type Client struct {
 	baseURL string
 }
 
+// NewClient returns a Client targeting the default otakugifs.xyz API URL with a 5-second HTTP timeout.
 func NewClient() *Client {
 	return &Client{http: &http.Client{Timeout: 5 * time.Second}, baseURL: baseURL}
 }

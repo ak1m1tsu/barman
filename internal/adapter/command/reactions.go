@@ -13,6 +13,9 @@ import (
 	reactionuc "github.com/ak1m1tsu/barman/internal/usecase/reaction"
 )
 
+// NewReactionsCommand returns the /reactions slash command and its handler.
+// The handler shows a paginated embed with one reaction card per page.
+// The response is public for owner IDs and ephemeral for all other users.
 func NewReactionsCommand(getStats *reactionuc.GetStatsUseCase, ownerIDs []string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
 	cmd := &discordgo.ApplicationCommand{
 		Name:        "reactions",

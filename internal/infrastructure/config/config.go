@@ -18,10 +18,14 @@ type Config struct {
 	Notifications NotificationsConfig `yaml:"notifications"`
 }
 
+// NotificationsConfig holds the optional Discord webhook URL for bot notifications.
+// Leave WebhookURL empty to disable all webhook delivery.
 type NotificationsConfig struct {
 	WebhookURL string `yaml:"webhook_url"`
 }
 
+// DiscordConfig holds the Discord bot credentials and guild-specific settings.
+// GuildID may be empty, in which case commands are registered globally.
 type DiscordConfig struct {
 	Token    string   `yaml:"token"`
 	AppID    string   `yaml:"app_id"`
@@ -30,10 +34,13 @@ type DiscordConfig struct {
 	OwnerIDs []string `yaml:"owner_ids"`
 }
 
+// DatabaseConfig holds the file-system path of the SQLite database.
 type DatabaseConfig struct {
 	Path string `yaml:"path"`
 }
 
+// TimeoutsConfig holds per-handler context timeout durations.
+// Use DefaultHandlerTimeout when Handler is zero.
 type TimeoutsConfig struct {
 	Handler time.Duration `yaml:"handler"`
 }

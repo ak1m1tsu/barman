@@ -7,6 +7,7 @@ import (
 	cooldowndomain "github.com/ak1m1tsu/barman/internal/domain/cooldown"
 )
 
+// CooldownDuration is the minimum time between bot reactions triggered by the same user.
 const CooldownDuration = time.Hour
 
 // CheckAndSetUseCase checks whether a user is on cooldown and, if not, records the current time.
@@ -14,6 +15,7 @@ type CheckAndSetUseCase struct {
 	repo cooldowndomain.Repository
 }
 
+// NewCheckAndSet returns a CheckAndSetUseCase backed by the given repository.
 func NewCheckAndSet(repo cooldowndomain.Repository) *CheckAndSetUseCase {
 	return &CheckAndSetUseCase{repo: repo}
 }

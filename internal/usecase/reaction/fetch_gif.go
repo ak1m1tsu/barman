@@ -12,6 +12,7 @@ type FetchGIFUseCase struct {
 	fetcher GIFFetcher
 }
 
+// NewFetchGIF returns a FetchGIFUseCase that delegates to the given fetcher.
 func NewFetchGIF(f GIFFetcher) *FetchGIFUseCase {
 	return &FetchGIFUseCase{fetcher: f}
 }

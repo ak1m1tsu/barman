@@ -15,6 +15,7 @@ type Client struct {
 	http *http.Client
 }
 
+// NewClient returns a Client with a 5-second HTTP timeout.
 func NewClient() *Client {
 	return &Client{http: &http.Client{Timeout: 5 * time.Second}}
 }

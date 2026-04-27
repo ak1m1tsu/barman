@@ -5,6 +5,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// NewHelpCommand returns the /help slash command and its handler.
+// The handler sends an ephemeral embed listing all available bot commands.
 func NewHelpCommand() (*discordgo.ApplicationCommand, Handler) {
 	cmd := &discordgo.ApplicationCommand{
 		Name:        "help",

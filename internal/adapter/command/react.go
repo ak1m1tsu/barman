@@ -56,6 +56,9 @@ var ReactionsMeta = map[string]ReactionMeta{
 	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
 }
 
+// NewReactCommand returns the /react slash command and its handler.
+// The handler fetches a GIF from the primary or fallback source, sends it as an embed,
+// and triggers a reciprocal bot reaction when the target is the bot itself (subject to cooldown).
 func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
 	choices := make([]*discordgo.ApplicationCommandOptionChoice, 0, len(ReactionOrder))
 	for _, key := range ReactionOrder {

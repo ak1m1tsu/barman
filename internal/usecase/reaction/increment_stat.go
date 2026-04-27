@@ -13,6 +13,7 @@ type IncrementStatUseCase struct {
 	repo reactiondomain.StatsRepository
 }
 
+// NewIncrementStat returns an IncrementStatUseCase backed by the given stats repository.
 func NewIncrementStat(repo reactiondomain.StatsRepository) *IncrementStatUseCase {
 	return &IncrementStatUseCase{repo: repo}
 }
