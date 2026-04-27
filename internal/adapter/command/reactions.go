@@ -110,15 +110,15 @@ func BuildCardButtons(index int, userID string, total int) discordgo.ActionsRow 
 				CustomID: fmt.Sprintf("reactions:prev:%s:%d", userID, index),
 			},
 			discordgo.Button{
+				Label:    "Весь список",
+				Style:    discordgo.SecondaryButton,
+				CustomID: fmt.Sprintf("reactions:all:%s:%d", userID, index),
+			},
+			discordgo.Button{
 				Label:    "→",
 				Style:    nextStyle,
 				Disabled: nextDisabled,
 				CustomID: fmt.Sprintf("reactions:next:%s:%d", userID, index),
-			},
-			discordgo.Button{
-				Label:    "Весь список",
-				Style:    discordgo.SecondaryButton,
-				CustomID: fmt.Sprintf("reactions:all:%s:%d", userID, index),
 			},
 		},
 	}
@@ -141,16 +141,19 @@ func BuildTableEmbed(userID string, fromIndex int, stats map[string]int64) (*dis
 		}
 	}
 
+	const nameW, descW = 10, 21
 	var sb strings.Builder
+	fmt.Fprintf(&sb, "%-*s  %-*s  %s\n", nameW, "Реакция", descW, "Действие", "Раз")
+	sb.WriteString(strings.Repeat("─", nameW+descW+9) + "\n")
 	for _, r := range rows {
 		meta := ReactionsMeta[r.key]
 		desc := strings.TrimPrefix(meta.WithoutTarget, "%s ")
-		fmt.Fprintf(&sb, "`%-10s` %s · **%d**\n", r.key, desc, r.count)
+		fmt.Fprintf(&sb, "%-*s  %-*s  %d\n", nameW, r.key, descW, desc, r.count)
 	}
 
 	embed := &discordgo.MessageEmbed{
 		Title:       "Все реакции",
-		Description: sb.String(),
+		Description: "```\n" + sb.String() + "```",
 		Color:       0x5865F2,
 		Footer: &discordgo.MessageEmbedFooter{
 			Text: "Используй /react <тип> или !<тип>",
