@@ -14,24 +14,21 @@ import (
 	reactionuc "github.com/ak1m1tsu/barman/internal/usecase/reaction"
 )
 
-type reactionMeta struct {
-	withTarget    string // "%s обнимает %s"
-	withoutTarget string // "%s обнимает всех"
+// ReactionMeta holds sentence templates for a reaction type.
+type ReactionMeta struct {
+	WithTarget    string // "%s обнимает %s"
+	WithoutTarget string // "%s обнимает всех"
 }
 
-var reactionOrder = []string{
+// ReactionOrder defines the canonical display order of reactions.
+var ReactionOrder = []string{
 	"hug", "pat", "kiss", "cuddle", "feed", "wave", "wink", "smile",
 	"highfive", "handshake", "poke", "tickle", "lick", "bite", "slap", "punch",
 	"love", "nuzzle", "shy", "nervous", "nosebleed", "brofist", "headbang", "sad", "peek",
-	"myatniy",
 }
 
-// nsfwReactions lists reaction types that require an age-restricted (NSFW) channel.
-var nsfwReactions = map[string]bool{
-	"myatniy": true,
-}
-
-var reactionsMeta = map[string]reactionMeta{
+// ReactionsMeta maps reaction type → sentence templates.
+var ReactionsMeta = map[string]ReactionMeta{
 	"hug":       {"%s обнимает %s", "%s обнимает всех"},
 	"pat":       {"%s гладит %s", "%s гладит всех"},
 	"kiss":      {"%s целует %s", "%s целует всех"},
@@ -57,12 +54,11 @@ var reactionsMeta = map[string]reactionMeta{
 	"headbang":  {"%s хэдбэнгит с %s", "%s хэдбэнгит"},
 	"sad":       {"%s грустит с %s", "%s грустит"},
 	"peek":      {"%s подглядывает за %s", "%s подглядывает"},
-	"myatniy":   {"%s делает мятный %s", "%s делает мятный всем"},
 }
 
-func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, nsfwAllowedUsers map[string][]string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, 0, len(reactionOrder))
-	for _, key := range reactionOrder {
+func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, timeout time.Duration) (*discordgo.ApplicationCommand, Handler) {
+	choices := make([]*discordgo.ApplicationCommandOptionChoice, 0, len(ReactionOrder))
+	for _, key := range ReactionOrder {
 		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
 			Name:  key,
 			Value: key,
@@ -100,15 +96,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetch
 
 		opts := i.ApplicationCommandData().Options
 		reactionType := opts[0].StringValue()
-		meta := reactionsMeta[reactionType]
-
-		isOwner := slices.Contains(ownerIDs, i.Member.User.ID)
-		if nsfwReactions[reactionType] && !isOwner {
-			if _, ok := nsfwAllowedUsers[i.Member.User.ID]; !ok {
-				respondEphemeral(s, i, "У тебя нет доступа к этой реакции.")
-				return
-			}
-		}
+		meta := ReactionsMeta[reactionType]
 
 		actor := memberDisplayName(i.Member)
 
@@ -135,27 +123,12 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetch
 			}
 		}
 
-		if nsfwReactions[reactionType] {
-			if !isOwner {
-				allowedTargets := nsfwAllowedUsers[i.Member.User.ID]
-				if targetID != "" && !slices.Contains(allowedTargets, targetID) {
-					respondEphemeral(s, i, "Этот пользователь не может быть целью этой реакции.")
-					return
-				}
-			}
-			ch, err := s.Channel(i.ChannelID)
-			if err != nil || !ch.NSFW {
-				respondEphemeral(s, i, "Эта реакция доступна только в NSFW-каналах.")
-				return
-			}
-		}
-
 		// Build sentence
 		var sentence string
 		if targetName == "" {
-			sentence = fmt.Sprintf(meta.withoutTarget, actor)
+			sentence = fmt.Sprintf(meta.WithoutTarget, actor)
 		} else {
-			sentence = fmt.Sprintf(meta.withTarget, actor, targetName)
+			sentence = fmt.Sprintf(meta.WithTarget, actor, targetName)
 		}
 
 		log := logrus.WithFields(logrus.Fields{
@@ -183,11 +156,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetch
 			}
 		}
 
-		gif := fetchGIF
-		if nsfwReactions[reactionType] {
-			gif = nsfwFetchGIF
-		}
-		gifURL, err := gif.Execute(ctx, reactionType)
+		gifURL, err := fetchGIF.Execute(ctx, reactionType)
 		if err != nil {
 			log.WithError(err).Error("failed to fetch reaction gif")
 			errMsg := "Не удалось получить GIF. Попробуйте позже."
@@ -253,7 +222,6 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetch
 				return
 			}
 
-			// Fetch the original interaction response to reply to it.
 			respMsg, err := s.InteractionResponse(i.Interaction)
 			if err != nil {
 				log.WithError(err).Error("failed to fetch interaction response")
@@ -261,7 +229,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, nsfwFetch
 			}
 
 			botName := memberDisplayName(&discordgo.Member{User: s.State.User})
-			botSentence := fmt.Sprintf(meta.withTarget, botName, actor)
+			botSentence := fmt.Sprintf(meta.WithTarget, botName, actor)
 			if _, err := s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
 				Reference: respMsg.Reference(),
 				Embed: &discordgo.MessageEmbed{

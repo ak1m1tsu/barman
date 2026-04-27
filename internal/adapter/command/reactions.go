@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 
@@ -35,58 +34,25 @@ func NewReactionsCommand(getStats *reactionuc.GetStatsUseCase, ownerIDs []string
 			stats = map[string]int64{}
 		}
 
-		sfwKeys := make([]string, 0, len(reactionOrder))
-		nsfwKeys := make([]string, 0)
-		for _, key := range reactionOrder {
-			if nsfwReactions[key] {
-				nsfwKeys = append(nsfwKeys, key)
-			} else {
-				sfwKeys = append(sfwKeys, key)
-			}
+		userID := ""
+		if i.Member != nil {
+			userID = i.Member.User.ID
 		}
-
-		byCount := func(keys []string) {
-			sort.SliceStable(keys, func(a, b int) bool {
-				return stats[keys[a]] > stats[keys[b]]
-			})
-		}
-		byCount(sfwKeys)
-		byCount(nsfwKeys)
-
-		writeSection := func(sb *strings.Builder, keys []string) {
-			for _, key := range keys {
-				meta := reactionsMeta[key]
-				desc := strings.TrimPrefix(meta.withoutTarget, "%s ")
-				fmt.Fprintf(sb, "`%-10s` — %s · **%d**\n", key, desc, stats[key])
-			}
-		}
-
-		var sfwSb, nsfwSb strings.Builder
-		writeSection(&sfwSb, sfwKeys)
-		writeSection(&nsfwSb, nsfwKeys)
 
 		var flags discordgo.MessageFlags
 		if i.Member == nil || !slices.Contains(ownerIDs, i.Member.User.ID) {
 			flags = discordgo.MessageFlagsEphemeral
 		}
 
+		embed := BuildReactionCard(0, stats)
+		buttons := BuildCardButtons(0, userID, len(ReactionOrder))
+
 		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Embeds: []*discordgo.MessageEmbed{
-					{
-						Title: "Доступные реакции",
-						Color: 0x5865F2,
-						Fields: []*discordgo.MessageEmbedField{
-							{Name: "SFW", Value: sfwSb.String(), Inline: false},
-							{Name: "NSFW 🔞", Value: nsfwSb.String(), Inline: false},
-						},
-						Footer: &discordgo.MessageEmbedFooter{
-							Text: "Используй /react <тип> или !<тип>",
-						},
-					},
-				},
-				Flags: flags,
+				Embeds:     []*discordgo.MessageEmbed{embed},
+				Components: []discordgo.MessageComponent{buttons},
+				Flags:      flags,
 			},
 		}); err != nil {
 			log.WithError(err).Error("reactions: failed to send response")
@@ -94,4 +60,141 @@ func NewReactionsCommand(getStats *reactionuc.GetStatsUseCase, ownerIDs []string
 	}
 
 	return cmd, handler
+}
+
+// BuildReactionCard builds an embed for a single reaction card at the given index.
+func BuildReactionCard(index int, stats map[string]int64) *discordgo.MessageEmbed {
+	key := ReactionOrder[index]
+	meta := ReactionsMeta[key]
+	emoji := ReactionEmojis[key]
+
+	desc := strings.TrimPrefix(meta.WithoutTarget, "%s ")
+	example := fmt.Sprintf(meta.WithTarget, "Алиса", "Боба")
+	count := stats[key]
+
+	return &discordgo.MessageEmbed{
+		Title: fmt.Sprintf("%s %s", emoji, key),
+		Color: 0x5865F2,
+		Fields: []*discordgo.MessageEmbedField{
+			{Name: "Команда", Value: fmt.Sprintf("`/react %s`  или  `!%s`", key, key), Inline: false},
+			{Name: "Описание", Value: desc, Inline: true},
+			{Name: "Использований", Value: fmt.Sprintf("%d", count), Inline: true},
+			{Name: "Пример", Value: example, Inline: false},
+		},
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: fmt.Sprintf("Карточка %d из %d", index+1, len(ReactionOrder)),
+		},
+	}
+}
+
+// BuildCardButtons returns the action row for card navigation.
+func BuildCardButtons(index int, userID string, total int) discordgo.ActionsRow {
+	prevDisabled := index == 0
+	nextDisabled := index == total-1
+
+	prevStyle := discordgo.PrimaryButton
+	if prevDisabled {
+		prevStyle = discordgo.SecondaryButton
+	}
+	nextStyle := discordgo.PrimaryButton
+	if nextDisabled {
+		nextStyle = discordgo.SecondaryButton
+	}
+
+	return discordgo.ActionsRow{
+		Components: []discordgo.MessageComponent{
+			discordgo.Button{
+				Label:    "←",
+				Style:    prevStyle,
+				Disabled: prevDisabled,
+				CustomID: fmt.Sprintf("reactions:prev:%s:%d", userID, index),
+			},
+			discordgo.Button{
+				Label:    "→",
+				Style:    nextStyle,
+				Disabled: nextDisabled,
+				CustomID: fmt.Sprintf("reactions:next:%s:%d", userID, index),
+			},
+			discordgo.Button{
+				Label:    "Весь список",
+				Style:    discordgo.SecondaryButton,
+				CustomID: fmt.Sprintf("reactions:all:%s:%d", userID, index),
+			},
+		},
+	}
+}
+
+// BuildTableEmbed builds an embed listing all reactions sorted by usage count.
+func BuildTableEmbed(userID string, fromIndex int, stats map[string]int64) (*discordgo.MessageEmbed, discordgo.ActionsRow) {
+	type row struct {
+		key   string
+		count int64
+	}
+	rows := make([]row, len(ReactionOrder))
+	for i, key := range ReactionOrder {
+		rows[i] = row{key, stats[key]}
+	}
+	// Sort by count descending, stable to keep ReactionOrder as tiebreaker.
+	for i := 1; i < len(rows); i++ {
+		for j := i; j > 0 && rows[j].count > rows[j-1].count; j-- {
+			rows[j], rows[j-1] = rows[j-1], rows[j]
+		}
+	}
+
+	var sb strings.Builder
+	for _, r := range rows {
+		meta := ReactionsMeta[r.key]
+		desc := strings.TrimPrefix(meta.WithoutTarget, "%s ")
+		fmt.Fprintf(&sb, "`%-10s` %s · **%d**\n", r.key, desc, r.count)
+	}
+
+	embed := &discordgo.MessageEmbed{
+		Title:       "Все реакции",
+		Description: sb.String(),
+		Color:       0x5865F2,
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: "Используй /react <тип> или !<тип>",
+		},
+	}
+
+	buttons := discordgo.ActionsRow{
+		Components: []discordgo.MessageComponent{
+			discordgo.Button{
+				Label:    "Вернуться",
+				Style:    discordgo.SecondaryButton,
+				CustomID: fmt.Sprintf("reactions:back:%s:%d", userID, fromIndex),
+			},
+		},
+	}
+
+	return embed, buttons
+}
+
+// ReactionEmojis maps reaction type → emoji for card display.
+var ReactionEmojis = map[string]string{
+	"hug":       "🤗",
+	"pat":       "🐾",
+	"kiss":      "💋",
+	"cuddle":    "🫂",
+	"feed":      "🍴",
+	"wave":      "👋",
+	"wink":      "😉",
+	"smile":     "😊",
+	"highfive":  "🙌",
+	"handshake": "🤝",
+	"poke":      "👉",
+	"tickle":    "🤭",
+	"lick":      "👅",
+	"bite":      "😬",
+	"slap":      "🖐️",
+	"punch":     "👊",
+	"love":      "❤️",
+	"nuzzle":    "😽",
+	"shy":       "😳",
+	"nervous":   "😰",
+	"nosebleed": "🩸",
+	"brofist":   "🤜",
+	"headbang":  "🤘",
+	"sad":       "😢",
+	"peek":      "👀",
 }
