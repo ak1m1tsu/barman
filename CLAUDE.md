@@ -93,7 +93,12 @@ Both are registered in `app.go`. The interaction handler is identified by `Custo
 ## Linting
 
 - Run `make lint` after every change before committing. Fix all reported issues before proceeding.
-- Do not suppress linter warnings with `//nolint` unless there is no correct alternative; if used, add an inline comment explaining why.
+- `//nolint` is strictly forbidden. Code must always be written so that linters find no issues. If a linter fires, fix the root cause — never suppress it.
+
+## Documentation
+
+- Every exported identifier (type, function, method, variable, constant) must have a godoc comment that begins with the identifier's name.
+- The comment must describe the purpose and any non-obvious implementation details clearly enough that a reader can understand the behaviour without reading the body.
 
 ## Config
 
