@@ -66,7 +66,7 @@ func NewUserInfoCommand() (*discordgo.ApplicationCommand, Handler) {
 
 		embed := &discordgo.MessageEmbed{
 			Title: target.Username,
-			Color: 0x5865F2,
+			Color: ColorDiscordBranding,
 			Thumbnail: &discordgo.MessageEmbedThumbnail{
 				URL: target.AvatarURL("256"),
 			},

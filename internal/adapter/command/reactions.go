@@ -77,7 +77,7 @@ func BuildReactionCard(index int, stats map[string]int64) *discordgo.MessageEmbe
 
 	return &discordgo.MessageEmbed{
 		Title: fmt.Sprintf("%s %s", emoji, key),
-		Color: 0x5865F2,
+		Color: ColorDiscordBranding,
 		Fields: []*discordgo.MessageEmbedField{
 			{Name: "Команда", Value: fmt.Sprintf("`/react %s`  или  `!%s`", key, key), Inline: false},
 			{Name: "Описание", Value: desc, Inline: true},

@@ -16,7 +16,7 @@ func NewHelpCommand() (*discordgo.ApplicationCommand, Handler) {
 	handler := func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		embed := &discordgo.MessageEmbed{
 			Title: "Доступные команды",
-			Color: 0x5865F2,
+			Color: ColorDiscordBranding,
 			Fields: []*discordgo.MessageEmbedField{
 				{Name: "/ping", Value: "Проверить задержку бота"},
 				{Name: "/help", Value: "Показать этот список"},
