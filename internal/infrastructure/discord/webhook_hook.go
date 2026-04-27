@@ -88,11 +88,6 @@ func NewActivityWebhookHook(url string) *WebhookHook {
 	}
 }
 
-// NewWebhookHook is kept for backwards compatibility; it behaves like NewErrorWebhookHook.
-func NewWebhookHook(url string) *WebhookHook {
-	return NewErrorWebhookHook(url)
-}
-
 func (h *WebhookHook) Levels() []logrus.Level {
 	levels := make([]logrus.Level, 0, len(h.meta))
 	for l := range h.meta {
