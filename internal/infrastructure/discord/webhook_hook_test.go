@@ -1,6 +1,7 @@
 package discord_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -50,8 +51,7 @@ func TestWebhookHook_Fire_SendsEmbed(t *testing.T) {
 	err := h.Fire(entry)
 	require.NoError(t, err)
 
-	// Fire is async — give it a moment to complete.
-	time.Sleep(200 * time.Millisecond)
+	require.NoError(t, h.Shutdown(context.Background()))
 
 	require.NotEmpty(t, received)
 
@@ -91,10 +91,83 @@ func TestWebhookHook_Fire_ToleratesUnreachableURL(t *testing.T) {
 		Data:    logrus.Fields{},
 	}
 
-	// Must not panic or block.
 	err := h.Fire(entry)
 	assert.NoError(t, err)
-	time.Sleep(200 * time.Millisecond)
+	require.NoError(t, h.Shutdown(context.Background()))
+}
+
+func TestWebhookHook_Shutdown_WaitsForInFlightGoroutines(t *testing.T) {
+	const delay = 100 * time.Millisecond
+
+	unblock := make(chan struct{})
+	var callCount atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-unblock
+		callCount.Add(1)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	h := discord.NewErrorWebhookHook(srv.URL)
+
+	for range 3 {
+		err := h.Fire(&logrus.Entry{
+			Logger: logrus.New(),
+			Level:  logrus.ErrorLevel,
+			Time:   time.Now(),
+			Data:   logrus.Fields{},
+		})
+		require.NoError(t, err)
+	}
+
+	// Goroutines are blocked on the server handler. Shutdown must not return yet.
+	shutdownDone := make(chan error, 1)
+	go func() {
+		shutdownDone <- h.Shutdown(context.Background())
+	}()
+
+	select {
+	case <-shutdownDone:
+		t.Fatal("Shutdown returned before goroutines finished")
+	case <-time.After(delay):
+	}
+
+	// Unblock all handlers — Shutdown should now complete.
+	close(unblock)
+
+	select {
+	case err := <-shutdownDone:
+		require.NoError(t, err)
+	case <-time.After(2 * time.Second):
+		t.Fatal("Shutdown did not complete after goroutines finished")
+	}
+
+	assert.Equal(t, int32(3), callCount.Load())
+}
+
+func TestWebhookHook_Shutdown_RespectsContextCancellation(t *testing.T) {
+	unblock := make(chan struct{}) // never closed — handler blocks forever
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-unblock
+	}))
+	defer func() {
+		close(unblock)
+		srv.Close()
+	}()
+
+	h := discord.NewErrorWebhookHook(srv.URL)
+	require.NoError(t, h.Fire(&logrus.Entry{
+		Logger: logrus.New(),
+		Level:  logrus.ErrorLevel,
+		Time:   time.Now(),
+		Data:   logrus.Fields{},
+	}))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	err := h.Shutdown(ctx)
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
 func TestActivityWebhookHook_Levels(t *testing.T) {
@@ -124,7 +197,7 @@ func TestActivityWebhookHook_Fire_SkipsEntryWithoutNotifyField(t *testing.T) {
 
 	err := h.Fire(entry)
 	require.NoError(t, err)
-	time.Sleep(200 * time.Millisecond)
+	require.NoError(t, h.Shutdown(context.Background()))
 
 	assert.Equal(t, int32(0), callCount.Load(), "no HTTP call expected for entries without notify field")
 }
@@ -154,7 +227,7 @@ func TestActivityWebhookHook_Fire_SendsEmbedWhenNotifySet(t *testing.T) {
 
 	err := h.Fire(entry)
 	require.NoError(t, err)
-	time.Sleep(200 * time.Millisecond)
+	require.NoError(t, h.Shutdown(context.Background()))
 
 	require.NotEmpty(t, received)
 
@@ -194,5 +267,5 @@ func TestActivityWebhookHook_Fire_ToleratesUnreachableURL(t *testing.T) {
 
 	err := h.Fire(entry)
 	assert.NoError(t, err)
-	time.Sleep(200 * time.Millisecond)
+	require.NoError(t, h.Shutdown(context.Background()))
 }

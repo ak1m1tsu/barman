@@ -1,8 +1,10 @@
 package app
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -22,9 +24,10 @@ import (
 
 // App is the composition root. It wires all dependencies and manages the bot lifecycle.
 type App struct {
-	bot      *discord.Bot
-	db       *sql.DB
-	registry *command.Registry
+	bot          *discord.Bot
+	db           *sql.DB
+	registry     *command.Registry
+	webhookHooks []*discord.WebhookHook
 }
 
 // New wires all dependencies from cfg and returns a ready-to-run App.
@@ -80,9 +83,13 @@ func New(cfg *config.Config) (*App, error) {
 	}
 	log.WithField("handler_timeout", handlerTimeout).Info("timeouts configured")
 
+	var webhookHooks []*discord.WebhookHook
 	if url := cfg.Notifications.WebhookURL; url != "" {
-		logrus.AddHook(discord.NewErrorWebhookHook(url))
-		logrus.AddHook(discord.NewActivityWebhookHook(url))
+		errHook := discord.NewErrorWebhookHook(url)
+		actHook := discord.NewActivityWebhookHook(url)
+		logrus.AddHook(errHook)
+		logrus.AddHook(actHook)
+		webhookHooks = append(webhookHooks, errHook, actHook)
 		log.Info("webhook notifications enabled")
 	}
 
@@ -111,7 +118,7 @@ func New(cfg *config.Config) (*App, error) {
 
 	log.Info("all dependencies wired")
 
-	return &App{bot: bot, db: db, registry: registry}, nil
+	return &App{bot: bot, db: db, registry: registry, webhookHooks: webhookHooks}, nil
 }
 
 // Run opens the Discord gateway session and registers slash commands with Discord.
@@ -133,10 +140,20 @@ func (a *App) Run() error {
 	return nil
 }
 
-// Close shuts down the Discord session and the database connection.
+// Close drains in-flight webhook goroutines, then shuts down the Discord
+// session and the database connection. Webhook drain is given 5 seconds; if
+// that expires, shutdown continues anyway and the context error is logged.
 func (a *App) Close() error {
 	log := logrus.WithField("op", "app.Close")
 	log.Info("closing application")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	for _, h := range a.webhookHooks {
+		if err := h.Shutdown(shutdownCtx); err != nil {
+			log.WithError(err).Warn("webhook hook: shutdown timed out, some notifications may be lost")
+		}
+	}
 
 	var errs []error
 	if err := a.bot.Session.Close(); err != nil {
