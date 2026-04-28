@@ -27,11 +27,13 @@ type NotificationsConfig struct {
 // DiscordConfig holds the Discord bot credentials and guild-specific settings.
 // GuildID may be empty, in which case commands are registered globally.
 type DiscordConfig struct {
-	Token    string   `yaml:"token"`
-	AppID    string   `yaml:"app_id"`
-	GuildID  string   `yaml:"guild_id"`
-	Prefix   string   `yaml:"prefix"`
-	OwnerIDs []string `yaml:"owner_ids"`
+	Token        string   `yaml:"token"`
+	AppID        string   `yaml:"app_id"`
+	GuildID      string   `yaml:"guild_id"`
+	Prefix       string   `yaml:"prefix"`
+	OwnerIDs     []string `yaml:"owner_ids"`
+	ActivityType string   `yaml:"activity_type"` // playing | watching | listening | competing
+	ActivityText string   `yaml:"activity_text"`
 }
 
 // DatabaseConfig holds the file-system path of the SQLite database.

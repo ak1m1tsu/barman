@@ -5,6 +5,8 @@ discord:
   prefix: "!"   # prefix for message-based commands (e.g. !react hug)
   owner_ids:    # user IDs that bypass reaction cooldown
     - "324462804939833345"
+  activity_type: "watching"   # playing | watching | listening | competing (leave empty to disable)
+  activity_text: "аниме реакции"
 database:
   path: "barman.db"
 

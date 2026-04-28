@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
 	"github.com/ak1m1tsu/barman/internal/adapter/command"
@@ -28,6 +29,8 @@ type App struct {
 	db           *sql.DB
 	registry     *command.Registry
 	webhookHooks []*discord.WebhookHook
+	activityType string
+	activityText string
 }
 
 // New wires all dependencies from cfg and returns a ready-to-run App.
@@ -118,7 +121,14 @@ func New(cfg *config.Config) (*App, error) {
 
 	log.Info("all dependencies wired")
 
-	return &App{bot: bot, db: db, registry: registry, webhookHooks: webhookHooks}, nil
+	return &App{
+		bot:          bot,
+		db:           db,
+		registry:     registry,
+		webhookHooks: webhookHooks,
+		activityType: cfg.Discord.ActivityType,
+		activityText: cfg.Discord.ActivityText,
+	}, nil
 }
 
 // Run opens the Discord gateway session and registers slash commands with Discord.
@@ -136,8 +146,34 @@ func (a *App) Run() error {
 		}
 	}
 
+	if a.activityText != "" {
+		if err := a.applyActivity(); err != nil {
+			log.WithError(err).Warn("failed to set bot activity")
+		}
+	}
+
 	logrus.Info("bot is running")
 	return nil
+}
+
+// applyActivity sets the bot's presence according to the configured activity type and text.
+func (a *App) applyActivity() error {
+	switch a.activityType {
+	case "watching":
+		return a.bot.Session.UpdateWatchStatus(0, a.activityText)
+	case "listening":
+		return a.bot.Session.UpdateListeningStatus(a.activityText)
+	case "competing":
+		return a.bot.Session.UpdateStatusComplex(discordgo.UpdateStatusData{
+			Status: "online",
+			Activities: []*discordgo.Activity{{
+				Name: a.activityText,
+				Type: discordgo.ActivityTypeCompeting,
+			}},
+		})
+	default: // "playing" or empty
+		return a.bot.Session.UpdateGameStatus(0, a.activityText)
+	}
 }
 
 // Close drains in-flight webhook goroutines, then shuts down the Discord
