@@ -6,21 +6,9 @@ discord:
   owner_ids:    # user IDs that bypass reaction cooldown
     - "324462804939833345"
   activity:
-    type: "watching"             # playing | watching | listening | competing
-    text: "аниме реакции"        # main activity name (leave empty to disable)
-    details: ""                  # secondary line (may not appear in all clients)
-    state: ""                    # tertiary line
-    large_image: ""              # asset key from Discord Dev Portal (Rich Presence → Art Assets)
-    large_image_text: ""         # tooltip shown on hover over large image
-    small_image: ""              # asset key from Discord Dev Portal
-    small_image_text: ""         # tooltip shown on hover over small image
-    timestamps:
-      start_now: false           # show elapsed time since bot started ("01:23 elapsed")
-      end: 0                     # Unix timestamp (seconds) for countdown display; 0 to disable
-    party:
-      id: ""                     # opaque party identifier (leave empty if unused)
-      current_size: 0            # current party members
-      max_size: 0                # max party size; when > 0 shows "N of M" in Discord
+    type: "watching"       # playing | watching | listening | competing
+    text: "аниме реакции"  # main activity name (leave empty to disable)
+    state: ""              # line shown below the activity name
 database:
   path: "barman.db"
 

@@ -154,41 +154,12 @@ func (a *App) Run() error {
 	return nil
 }
 
-// applyActivity sets the bot's presence using all configured activity fields.
+// applyActivity sets the bot's gateway presence. Only name, type, and state are
+// rendered by Discord clients for bot presence; other Rich Presence fields are ignored.
 func (a *App) applyActivity() error {
 	act := &discordgo.Activity{
-		Name:    a.activity.Text,
-		Details: a.activity.Details,
-		State:   a.activity.State,
-	}
-
-	if a.activity.LargeImage != "" || a.activity.SmallImage != "" {
-		act.ApplicationID = a.bot.AppID
-		act.Assets = discordgo.Assets{
-			LargeImageID: a.activity.LargeImage,
-			LargeText:    a.activity.LargeImageText,
-			SmallImageID: a.activity.SmallImage,
-			SmallText:    a.activity.SmallImageText,
-		}
-	}
-
-	ts := a.activity.Timestamps
-	if ts.StartNow || ts.End != 0 {
-		act.Timestamps = discordgo.TimeStamps{}
-		if ts.StartNow {
-			act.Timestamps.StartTimestamp = time.Now().UnixMilli()
-		}
-		if ts.End != 0 {
-			act.Timestamps.EndTimestamp = ts.End * 1000
-		}
-	}
-
-	p := a.activity.Party
-	if p.ID != "" || p.MaxSize > 0 {
-		act.Party = discordgo.Party{ID: p.ID}
-		if p.MaxSize > 0 {
-			act.Party.Size = []int{p.CurrentSize, p.MaxSize}
-		}
+		Name:  a.activity.Text,
+		State: a.activity.State,
 	}
 
 	switch a.activity.Type {
