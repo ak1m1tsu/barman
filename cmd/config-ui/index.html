@@ -4,334 +4,59 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Barman — Activity Configurator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        dc: {
+          bg:      '#1e1f22',
+          surface: '#2b2d31',
+          border:  '#3b3d44',
+          accent:  '#5865f2',
+          text:    '#dbdee1',
+          muted:   '#949ba4',
+          popup:   '#111214',
+        }
+      },
+      fontFamily: {
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        mono: ['"JetBrains Mono"', '"Fira Code"', '"Cascadia Code"', 'monospace'],
+      }
+    }
+  }
+}
+</script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg: #1e1f22;
-    --surface: #2b2d31;
-    --border: #3b3d44;
-    --accent: #5865f2;
-    --accent-hover: #4752c4;
-    --text: #dbdee1;
-    --muted: #949ba4;
-    --success: #57f287;
-    --warning: #fee75c;
-    --radius: 8px;
-    --mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
-  }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
-    min-height: 100vh;
-  }
-
-  header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  header h1 { font-size: 18px; font-weight: 600; }
-  header span { color: var(--muted); font-size: 13px; }
-
-  .layout {
-    display: grid;
-    grid-template-columns: 420px 1fr;
-    gap: 0;
-    height: calc(100vh - 57px);
-  }
-
-  .form-panel {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    padding: 24px;
-    overflow-y: auto;
-  }
-
-  .preview-panel {
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    overflow-y: auto;
-  }
-
-  .section-title {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    color: var(--muted);
-    margin-bottom: 12px;
-    margin-top: 20px;
-  }
-  .section-title:first-child { margin-top: 0; }
-
-  .field { margin-bottom: 14px; }
-  .field label {
-    display: block;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    margin-bottom: 6px;
-  }
-  .field label .optional {
-    font-weight: 400;
-    text-transform: none;
-    letter-spacing: 0;
-    color: #6d6f78;
-    margin-left: 4px;
-  }
-
-  input[type="text"], select {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    padding: 8px 12px;
-    font-size: 14px;
-    font-family: inherit;
-    outline: none;
-    transition: border-color .15s;
-  }
-  input[type="text"]:focus, select:focus { border-color: var(--accent); }
-  select option { background: var(--bg); }
-
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-  .note {
-    background: #2a2000;
-    border: 1px solid #5a4800;
-    border-left: 3px solid var(--warning);
-    border-radius: var(--radius);
-    padding: 10px 14px;
-    font-size: 12px;
-    color: #d4b84a;
-    line-height: 1.6;
-  }
-  .note strong { color: var(--warning); }
-  .note a { color: var(--warning); }
-
-  /* ── YAML Preview ── */
-  .preview-label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    color: var(--muted);
-    margin-bottom: 8px;
-  }
-
-  .preview-box {
-    position: relative;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-
-  .preview-box pre {
-    font-family: var(--mono);
-    font-size: 13px;
-    line-height: 1.7;
-    padding: 16px;
-    overflow-x: auto;
-    white-space: pre;
-    color: var(--text);
-  }
-
   .y-key     { color: #7dd3fc; }
   .y-str     { color: #86efac; }
   .y-empty   { color: #555; }
   .y-comment { color: #6b7280; font-style: italic; }
-
-  .copy-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 5px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background .15s, transform .1s;
-  }
-  .copy-btn:hover  { background: var(--accent-hover); }
-  .copy-btn:active { transform: scale(.96); }
-  .copy-btn.copied { background: #2d7a4f; }
-
-  /* ── Discord Profile Card Preview ── */
-  .discord-popup {
-    background: #111214;
-    border-radius: 10px;
-    width: 300px;
-    overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0,0,0,.6);
-    border: 1px solid rgba(255,255,255,.06);
-  }
-
-  /* Banner area */
-  .popup-banner {
-    height: 60px;
-    background: linear-gradient(135deg, #5865f2 0%, #eb459e 100%);
-  }
-
-  /* Avatar row */
-  .popup-avatar-row {
-    display: flex;
-    align-items: flex-end;
-    padding: 0 16px;
-    margin-top: -24px;
-    margin-bottom: 12px;
-  }
-  .popup-avatar {
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    background: #5865f2;
-    border: 6px solid #111214;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    flex-shrink: 0;
-  }
-  .popup-online-dot {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #23a55a;
-    border: 3px solid #111214;
-    margin-left: -18px;
-    margin-bottom: 4px;
-  }
-
-  .popup-name-row {
-    padding: 0 16px;
-    margin-bottom: 12px;
-  }
-  .popup-display-name { font-size: 16px; font-weight: 700; color: #f2f3f5; }
-  .popup-username     { font-size: 13px; color: var(--muted); }
-
-  .popup-divider {
-    height: 1px;
-    background: var(--border);
-    margin: 0 16px 12px;
-  }
-
-  /* Activity section */
-  .popup-activity {
-    padding: 0 16px 16px;
-  }
-  .popup-activity-header {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    color: var(--text);
-    margin-bottom: 10px;
-  }
-
-  .popup-activity-body {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-  }
-
-  /* Images */
-  .popup-img-wrap {
-    position: relative;
-    flex-shrink: 0;
-  }
-  .popup-large-img {
-    width: 60px;
-    height: 60px;
-    border-radius: 8px;
-    background: var(--surface);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-  }
-  .popup-small-img {
-    position: absolute;
-    bottom: -5px;
-    right: -5px;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: var(--surface);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    border: 3px solid #111214;
-  }
-
-  /* Text */
-  .popup-activity-text { flex: 1; min-width: 0; padding-top: 2px; }
-  .popup-act-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: #f2f3f5;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 2px;
-  }
-  .popup-act-line {
-    font-size: 12px;
-    color: var(--muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 1px;
-  }
-  .popup-act-line.empty {
-    color: #3a3c43;
-    font-style: italic;
-  }
-
-  /* No-image layout */
-  .popup-activity-body.no-image .popup-activity-text { padding-top: 0; }
+  select option { background: #1e1f22; }
 </style>
 </head>
-<body>
+<body class="bg-dc-bg text-dc-text text-sm leading-relaxed min-h-screen font-sans">
 
-<header>
+<header class="bg-dc-surface border-b border-dc-border px-6 py-4 flex items-center gap-3">
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
     <rect width="24" height="24" rx="6" fill="#5865F2"/>
     <path d="M8 8.5C8 7.12 9.12 6 10.5 6h3C14.88 6 16 7.12 16 8.5V10h1a1 1 0 0 1 0 2h-1v1.5C16 14.88 14.88 16 13.5 16h-3C9.12 16 8 14.88 8 13.5V12H7a1 1 0 0 1 0-2h1V8.5Z" fill="white"/>
   </svg>
-  <h1>Barman</h1>
-  <span>Activity Configurator</span>
+  <h1 class="text-lg font-semibold">Barman</h1>
+  <span class="text-dc-muted text-[13px]">Activity Configurator</span>
 </header>
 
-<div class="layout">
+<div class="grid h-[calc(100vh-57px)]" style="grid-template-columns: 420px 1fr">
 
-  <!-- ── FORM ── -->
-  <div class="form-panel">
+  <!-- Form panel -->
+  <div class="bg-dc-surface border-r border-dc-border p-6 overflow-y-auto">
 
-    <div class="section-title">Основное</div>
+    <div class="text-[11px] font-bold uppercase tracking-widest text-dc-muted mb-3">Основное</div>
 
-    <div class="field">
-      <label>Тип активности</label>
-      <select id="type">
+    <div class="mb-3.5">
+      <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">Тип активности</label>
+      <select id="type" class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors cursor-pointer">
         <option value="playing">Playing (Играет в)</option>
         <option value="watching" selected>Watching (Смотрит)</option>
         <option value="listening">Listening to (Слушает)</option>
@@ -339,84 +64,102 @@
       </select>
     </div>
 
-    <div class="field">
-      <label>Название <span class="optional">— основной текст активности</span></label>
-      <input type="text" id="text" placeholder="аниме реакции" value="аниме реакции">
+    <div class="mb-3.5">
+      <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">
+        Название <span class="font-normal normal-case tracking-normal text-[#6d6f78] ml-1">— основной текст активности</span>
+      </label>
+      <input type="text" id="text" placeholder="аниме реакции" value="аниме реакции"
+             class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
     </div>
 
-    <div class="field">
-      <label>Details <span class="optional">— вторая строка</span></label>
-      <input type="text" id="details" placeholder="">
+    <div class="mb-3.5">
+      <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">
+        Details <span class="font-normal normal-case tracking-normal text-[#6d6f78] ml-1">— вторая строка</span>
+      </label>
+      <input type="text" id="details" placeholder=""
+             class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
     </div>
 
-    <div class="field">
-      <label>State <span class="optional">— третья строка</span></label>
-      <input type="text" id="state" placeholder="">
+    <div class="mb-3.5">
+      <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">
+        State <span class="font-normal normal-case tracking-normal text-[#6d6f78] ml-1">— третья строка</span>
+      </label>
+      <input type="text" id="state" placeholder=""
+             class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
     </div>
 
-    <div class="section-title">Изображения</div>
+    <div class="text-[11px] font-bold uppercase tracking-widest text-dc-muted mb-3 mt-5">Изображения</div>
 
-    <div class="note">
-      <strong>⚠ Требует настройки в Discord Dev Portal</strong><br>
+    <div class="rounded-lg p-3 text-[12px] text-[#d4b84a] leading-relaxed mb-3.5 bg-[#2a2000]"
+         style="border: 1px solid #5a4800; border-left: 3px solid #fee75c">
+      <strong class="text-[#fee75c]">⚠ Требует настройки в Discord Dev Portal</strong><br>
       Загрузите изображения в
-      <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a>
+      <a href="https://discord.com/developers/applications" target="_blank" class="text-[#fee75c] underline">Discord Developer Portal</a>
       → Applications → [Ваш бот] → Rich Presence → Art Assets.<br>
       Используйте <strong>Asset Key</strong> (не URL) в полях ниже.<br>
       <code>app_id</code> в конфиге должен совпадать с App ID бота.
     </div>
 
-    <div class="field" style="margin-top:14px">
-      <label>Large Image Key <span class="optional">— ключ основного изображения</span></label>
-      <input type="text" id="large_image" placeholder="bot_logo">
+    <div class="mb-3.5">
+      <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">
+        Large Image Key <span class="font-normal normal-case tracking-normal text-[#6d6f78] ml-1">— ключ основного изображения</span>
+      </label>
+      <input type="text" id="large_image" placeholder="bot_logo"
+             class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
     </div>
 
-    <div class="field">
-      <label>Large Image Text <span class="optional">— подсказка при наведении</span></label>
-      <input type="text" id="large_image_text" placeholder="Barman Bot">
+    <div class="mb-3.5">
+      <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">
+        Large Image Text <span class="font-normal normal-case tracking-normal text-[#6d6f78] ml-1">— подсказка при наведении</span>
+      </label>
+      <input type="text" id="large_image_text" placeholder="Barman Bot"
+             class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
     </div>
 
-    <div class="field-row">
-      <div class="field">
-        <label>Small Image Key</label>
-        <input type="text" id="small_image" placeholder="">
+    <div class="grid grid-cols-2 gap-2.5">
+      <div>
+        <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">Small Image Key</label>
+        <input type="text" id="small_image" placeholder=""
+               class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
       </div>
-      <div class="field">
-        <label>Small Image Text</label>
-        <input type="text" id="small_image_text" placeholder="">
+      <div>
+        <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">Small Image Text</label>
+        <input type="text" id="small_image_text" placeholder=""
+               class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
       </div>
     </div>
 
   </div>
 
-  <!-- ── PREVIEW + YAML ── -->
-  <div class="preview-panel">
+  <!-- Preview panel -->
+  <div class="p-6 flex flex-col gap-6 overflow-y-auto">
 
-    <!-- Discord profile popup mockup -->
+    <!-- Discord popup mockup -->
     <div>
-      <div class="preview-label">Предпросмотр — профиль Discord</div>
-      <div class="discord-popup">
-        <div class="popup-banner"></div>
+      <div class="text-[11px] font-bold uppercase tracking-widest text-dc-muted mb-2">Предпросмотр — профиль Discord</div>
+      <div class="bg-dc-popup rounded-[10px] w-[300px] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,.6)] border border-white/[.06]">
 
-        <div class="popup-avatar-row">
-          <div class="popup-avatar">🤖</div>
-          <div class="popup-online-dot"></div>
+        <div class="h-[60px] bg-gradient-to-br from-[#5865f2] to-[#eb459e]"></div>
+
+        <div class="flex items-end px-4 -mt-6 mb-3">
+          <div class="w-[72px] h-[72px] rounded-full bg-[#5865f2] border-[6px] border-dc-popup flex items-center justify-center text-[28px] shrink-0">🤖</div>
+          <div class="w-4 h-4 rounded-full bg-[#23a55a] border-[3px] border-dc-popup -ml-[18px] mb-1"></div>
         </div>
 
-        <div class="popup-name-row">
-          <div class="popup-display-name">Barman</div>
-          <div class="popup-username">barman_bot</div>
+        <div class="px-4 mb-3">
+          <div class="text-base font-bold text-[#f2f3f5]">Barman</div>
+          <div class="text-[13px] text-dc-muted">barman_bot</div>
         </div>
 
-        <div class="popup-divider"></div>
+        <div class="h-px bg-dc-border mx-4 mb-3"></div>
 
-        <div class="popup-activity">
-          <div class="popup-activity-header" id="activity-header">СМОТРИТ</div>
-          <div class="popup-activity-body" id="activity-body">
-            <!-- image wrap injected by JS when large_image is set -->
-            <div class="popup-activity-text" id="activity-text">
-              <div class="popup-act-name" id="act-name">аниме реакции</div>
-              <div class="popup-act-line" id="act-details" style="display:none"></div>
-              <div class="popup-act-line" id="act-state"   style="display:none"></div>
+        <div class="px-4 pb-4">
+          <div class="text-[11px] font-bold uppercase tracking-widest text-dc-text mb-2.5" id="activity-header">СМОТРИТ</div>
+          <div class="flex gap-2.5 items-start" id="activity-body">
+            <div class="flex-1 min-w-0 pt-0.5" id="activity-text">
+              <div class="text-[13px] font-bold text-[#f2f3f5] truncate mb-0.5" id="act-name">аниме реакции</div>
+              <div class="text-[12px] text-dc-muted truncate mb-px hidden" id="act-details"></div>
+              <div class="text-[12px] text-dc-muted truncate hidden" id="act-state"></div>
             </div>
           </div>
         </div>
@@ -425,10 +168,13 @@
 
     <!-- YAML snippet -->
     <div>
-      <div class="preview-label">Фрагмент конфига (discord.activity)</div>
-      <div class="preview-box">
-        <pre id="yaml-out"></pre>
-        <button class="copy-btn" id="copy-btn" onclick="copyYAML()">Копировать</button>
+      <div class="text-[11px] font-bold uppercase tracking-widest text-dc-muted mb-2">Фрагмент конфига (discord.activity)</div>
+      <div class="relative bg-dc-bg border border-dc-border rounded-lg overflow-hidden">
+        <pre id="yaml-out" class="font-mono text-[13px] leading-[1.7] p-4 overflow-x-auto whitespace-pre text-dc-text"></pre>
+        <button id="copy-btn" onclick="copyYAML()"
+                class="absolute top-2 right-2 bg-dc-accent hover:bg-[#4752c4] active:scale-95 text-white border-0 rounded-md px-3 py-1 text-[12px] font-semibold cursor-pointer transition-all">
+          Копировать
+        </button>
       </div>
     </div>
 
@@ -479,70 +225,48 @@ function renderYAML() {
 
 function renderCard() {
   const t = val('type') || 'playing';
-
-  // Header
   document.getElementById('activity-header').textContent = TYPE_HEADERS[t] || 'ИГРАЕТ В';
 
-  // Activity name
-  const name = val('text');
-  const actName = document.getElementById('act-name');
-  actName.textContent = name || '—';
+  document.getElementById('act-name').textContent = val('text') || '—';
 
-  // Details
   const details = val('details');
   const actDetails = document.getElementById('act-details');
-  if (details) {
-    actDetails.textContent = details;
-    actDetails.style.display = '';
-    actDetails.className = 'popup-act-line';
-  } else {
-    actDetails.style.display = 'none';
-  }
+  actDetails.textContent = details;
+  actDetails.classList.toggle('hidden', !details);
 
-  // State
   const state = val('state');
   const actState = document.getElementById('act-state');
-  if (state) {
-    actState.textContent = state;
-    actState.style.display = '';
-    actState.className = 'popup-act-line';
-  } else {
-    actState.style.display = 'none';
-  }
+  actState.textContent = state;
+  actState.classList.toggle('hidden', !state);
 
-  // Images
   const li = val('large_image');
   const si = val('small_image');
   const body = document.getElementById('activity-body');
   const textEl = document.getElementById('activity-text');
 
-  // Remove existing image wrap if present
   const existing = document.getElementById('img-wrap');
   if (existing) existing.remove();
 
   if (li) {
     const wrap = document.createElement('div');
     wrap.id = 'img-wrap';
-    wrap.className = 'popup-img-wrap';
+    wrap.className = 'relative shrink-0';
 
     const largeEl = document.createElement('div');
-    largeEl.className = 'popup-large-img';
+    largeEl.className = 'w-[60px] h-[60px] rounded-lg bg-dc-surface flex items-center justify-center text-[28px] overflow-hidden border border-dc-border';
     largeEl.textContent = '🖼️';
     largeEl.title = val('large_image_text') || li;
     wrap.appendChild(largeEl);
 
     if (si) {
       const smallEl = document.createElement('div');
-      smallEl.className = 'popup-small-img';
+      smallEl.className = 'absolute -bottom-1.5 -right-1.5 w-[22px] h-[22px] rounded-full bg-dc-surface flex items-center justify-center text-[12px] border-[3px] border-dc-popup';
       smallEl.textContent = '·';
       smallEl.title = val('small_image_text') || si;
       wrap.appendChild(smallEl);
     }
 
     body.insertBefore(wrap, textEl);
-    body.classList.remove('no-image');
-  } else {
-    body.classList.add('no-image');
   }
 }
 
@@ -567,8 +291,11 @@ function copyYAML() {
   navigator.clipboard.writeText(plainYAML()).then(() => {
     const btn = document.getElementById('copy-btn');
     btn.textContent = '✓ Скопировано';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Копировать'; btn.classList.remove('copied'); }, 2000);
+    btn.classList.replace('bg-dc-accent', 'bg-[#2d7a4f]');
+    setTimeout(() => {
+      btn.textContent = 'Копировать';
+      btn.classList.replace('bg-[#2d7a4f]', 'bg-dc-accent');
+    }, 2000);
   });
 }
 
