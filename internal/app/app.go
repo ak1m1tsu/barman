@@ -29,8 +29,7 @@ type App struct {
 	db           *sql.DB
 	registry     *command.Registry
 	webhookHooks []*discord.WebhookHook
-	activityType string
-	activityText string
+	activity     config.ActivityConfig
 }
 
 // New wires all dependencies from cfg and returns a ready-to-run App.
@@ -126,8 +125,7 @@ func New(cfg *config.Config) (*App, error) {
 		db:           db,
 		registry:     registry,
 		webhookHooks: webhookHooks,
-		activityType: cfg.Discord.ActivityType,
-		activityText: cfg.Discord.ActivityText,
+		activity:     cfg.Discord.Activity,
 	}, nil
 }
 
@@ -146,7 +144,7 @@ func (a *App) Run() error {
 		}
 	}
 
-	if a.activityText != "" {
+	if a.activity.Text != "" {
 		if err := a.applyActivity(); err != nil {
 			log.WithError(err).Warn("failed to set bot activity")
 		}
@@ -156,24 +154,39 @@ func (a *App) Run() error {
 	return nil
 }
 
-// applyActivity sets the bot's presence according to the configured activity type and text.
+// applyActivity sets the bot's presence using all configured activity fields.
 func (a *App) applyActivity() error {
-	switch a.activityType {
-	case "watching":
-		return a.bot.Session.UpdateWatchStatus(0, a.activityText)
-	case "listening":
-		return a.bot.Session.UpdateListeningStatus(a.activityText)
-	case "competing":
-		return a.bot.Session.UpdateStatusComplex(discordgo.UpdateStatusData{
-			Status: "online",
-			Activities: []*discordgo.Activity{{
-				Name: a.activityText,
-				Type: discordgo.ActivityTypeCompeting,
-			}},
-		})
-	default: // "playing" or empty
-		return a.bot.Session.UpdateGameStatus(0, a.activityText)
+	act := &discordgo.Activity{
+		Name:    a.activity.Text,
+		Details: a.activity.Details,
+		State:   a.activity.State,
 	}
+
+	if a.activity.LargeImage != "" || a.activity.SmallImage != "" {
+		act.ApplicationID = a.bot.AppID
+		act.Assets = discordgo.Assets{
+			LargeImageID: a.activity.LargeImage,
+			LargeText:    a.activity.LargeImageText,
+			SmallImageID: a.activity.SmallImage,
+			SmallText:    a.activity.SmallImageText,
+		}
+	}
+
+	switch a.activity.Type {
+	case "watching":
+		act.Type = discordgo.ActivityTypeWatching
+	case "listening":
+		act.Type = discordgo.ActivityTypeListening
+	case "competing":
+		act.Type = discordgo.ActivityTypeCompeting
+	default: // "playing" or empty
+		act.Type = discordgo.ActivityTypeGame
+	}
+
+	return a.bot.Session.UpdateStatusComplex(discordgo.UpdateStatusData{
+		Status:     "online",
+		Activities: []*discordgo.Activity{act},
+	})
 }
 
 // Close drains in-flight webhook goroutines, then shuts down the Discord

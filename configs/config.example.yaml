@@ -5,8 +5,15 @@ discord:
   prefix: "!"   # prefix for message-based commands (e.g. !react hug)
   owner_ids:    # user IDs that bypass reaction cooldown
     - "324462804939833345"
-  activity_type: "watching"   # playing | watching | listening | competing (leave empty to disable)
-  activity_text: "аниме реакции"
+  activity:
+    type: "watching"             # playing | watching | listening | competing
+    text: "аниме реакции"        # main activity name (leave empty to disable)
+    details: ""                  # secondary line (may not appear in all clients)
+    state: ""                    # tertiary line
+    large_image: ""              # asset key from Discord Dev Portal (Rich Presence → Art Assets)
+    large_image_text: ""         # tooltip shown on hover over large image
+    small_image: ""              # asset key from Discord Dev Portal
+    small_image_text: ""         # tooltip shown on hover over small image
 database:
   path: "barman.db"
 

@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barman — Activity Configurator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1e1f22;
+    --surface: #2b2d31;
+    --border: #3b3d44;
+    --accent: #5865f2;
+    --accent-hover: #4752c4;
+    --text: #dbdee1;
+    --muted: #949ba4;
+    --success: #57f287;
+    --warning: #fee75c;
+    --radius: 8px;
+    --mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header span { color: var(--muted); font-size: 13px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 0;
+    height: calc(100vh - 57px);
+  }
+
+  .form-panel {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px;
+    overflow-y: auto;
+  }
+
+  .preview-panel {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    overflow-y: auto;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    margin-bottom: 12px;
+    margin-top: 20px;
+  }
+  .section-title:first-child { margin-top: 0; }
+
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 6px;
+  }
+  .field label .optional {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #6d6f78;
+    margin-left: 4px;
+  }
+
+  input[type="text"], select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s;
+  }
+  input[type="text"]:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--bg); }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .note {
+    background: #2a2000;
+    border: 1px solid #5a4800;
+    border-left: 3px solid var(--warning);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #d4b84a;
+    line-height: 1.6;
+  }
+  .note strong { color: var(--warning); }
+  .note a { color: var(--warning); }
+
+  /* ── YAML Preview ── */
+  .preview-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .preview-box {
+    position: relative;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .preview-box pre {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 16px;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--text);
+  }
+
+  .y-key     { color: #7dd3fc; }
+  .y-str     { color: #86efac; }
+  .y-empty   { color: #555; }
+  .y-comment { color: #6b7280; font-style: italic; }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+  }
+  .copy-btn:hover  { background: var(--accent-hover); }
+  .copy-btn:active { transform: scale(.96); }
+  .copy-btn.copied { background: #2d7a4f; }
+
+  /* ── Discord Profile Card Preview ── */
+  .discord-popup {
+    background: #111214;
+    border-radius: 10px;
+    width: 300px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6);
+    border: 1px solid rgba(255,255,255,.06);
+  }
+
+  /* Banner area */
+  .popup-banner {
+    height: 60px;
+    background: linear-gradient(135deg, #5865f2 0%, #eb459e 100%);
+  }
+
+  /* Avatar row */
+  .popup-avatar-row {
+    display: flex;
+    align-items: flex-end;
+    padding: 0 16px;
+    margin-top: -24px;
+    margin-bottom: 12px;
+  }
+  .popup-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: #5865f2;
+    border: 6px solid #111214;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  .popup-online-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #23a55a;
+    border: 3px solid #111214;
+    margin-left: -18px;
+    margin-bottom: 4px;
+  }
+
+  .popup-name-row {
+    padding: 0 16px;
+    margin-bottom: 12px;
+  }
+  .popup-display-name { font-size: 16px; font-weight: 700; color: #f2f3f5; }
+  .popup-username     { font-size: 13px; color: var(--muted); }
+
+  .popup-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 16px 12px;
+  }
+
+  /* Activity section */
+  .popup-activity {
+    padding: 0 16px 16px;
+  }
+  .popup-activity-header {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  .popup-activity-body {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  /* Images */
+  .popup-img-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .popup-large-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .popup-small-img {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    border: 3px solid #111214;
+  }
+
+  /* Text */
+  .popup-activity-text { flex: 1; min-width: 0; padding-top: 2px; }
+  .popup-act-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f2f3f5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+  }
+  .popup-act-line {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 1px;
+  }
+  .popup-act-line.empty {
+    color: #3a3c43;
+    font-style: italic;
+  }
+
+  /* No-image layout */
+  .popup-activity-body.no-image .popup-activity-text { padding-top: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="6" fill="#5865F2"/>
+    <path d="M8 8.5C8 7.12 9.12 6 10.5 6h3C14.88 6 16 7.12 16 8.5V10h1a1 1 0 0 1 0 2h-1v1.5C16 14.88 14.88 16 13.5 16h-3C9.12 16 8 14.88 8 13.5V12H7a1 1 0 0 1 0-2h1V8.5Z" fill="white"/>
+  </svg>
+  <h1>Barman</h1>
+  <span>Activity Configurator</span>
+</header>
+
+<div class="layout">
+
+  <!-- ── FORM ── -->
+  <div class="form-panel">
+
+    <div class="section-title">Основное</div>
+
+    <div class="field">
+      <label>Тип активности</label>
+      <select id="type">
+        <option value="playing">Playing (Играет в)</option>
+        <option value="watching" selected>Watching (Смотрит)</option>
+        <option value="listening">Listening to (Слушает)</option>
+        <option value="competing">Competing in (Соревнуется в)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Название <span class="optional">— основной текст активности</span></label>
+      <input type="text" id="text" placeholder="аниме реакции" value="аниме реакции">
+    </div>
+
+    <div class="field">
+      <label>Details <span class="optional">— вторая строка</span></label>
+      <input type="text" id="details" placeholder="">
+    </div>
+
+    <div class="field">
+      <label>State <span class="optional">— третья строка</span></label>
+      <input type="text" id="state" placeholder="">
+    </div>
+
+    <div class="section-title">Изображения</div>
+
+    <div class="note">
+      <strong>⚠ Требует настройки в Discord Dev Portal</strong><br>
+      Загрузите изображения в
+      <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a>
+      → Applications → [Ваш бот] → Rich Presence → Art Assets.<br>
+      Используйте <strong>Asset Key</strong> (не URL) в полях ниже.<br>
+      <code>app_id</code> в конфиге должен совпадать с App ID бота.
+    </div>
+
+    <div class="field" style="margin-top:14px">
+      <label>Large Image Key <span class="optional">— ключ основного изображения</span></label>
+      <input type="text" id="large_image" placeholder="bot_logo">
+    </div>
+
+    <div class="field">
+      <label>Large Image Text <span class="optional">— подсказка при наведении</span></label>
+      <input type="text" id="large_image_text" placeholder="Barman Bot">
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Small Image Key</label>
+        <input type="text" id="small_image" placeholder="">
+      </div>
+      <div class="field">
+        <label>Small Image Text</label>
+        <input type="text" id="small_image_text" placeholder="">
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── PREVIEW + YAML ── -->
+  <div class="preview-panel">
+
+    <!-- Discord profile popup mockup -->
+    <div>
+      <div class="preview-label">Предпросмотр — профиль Discord</div>
+      <div class="discord-popup">
+        <div class="popup-banner"></div>
+
+        <div class="popup-avatar-row">
+          <div class="popup-avatar">🤖</div>
+          <div class="popup-online-dot"></div>
+        </div>
+
+        <div class="popup-name-row">
+          <div class="popup-display-name">Barman</div>
+          <div class="popup-username">barman_bot</div>
+        </div>
+
+        <div class="popup-divider"></div>
+
+        <div class="popup-activity">
+          <div class="popup-activity-header" id="activity-header">СМОТРИТ</div>
+          <div class="popup-activity-body" id="activity-body">
+            <!-- image wrap injected by JS when large_image is set -->
+            <div class="popup-activity-text" id="activity-text">
+              <div class="popup-act-name" id="act-name">аниме реакции</div>
+              <div class="popup-act-line" id="act-details" style="display:none"></div>
+              <div class="popup-act-line" id="act-state"   style="display:none"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- YAML snippet -->
+    <div>
+      <div class="preview-label">Фрагмент конфига (discord.activity)</div>
+      <div class="preview-box">
+        <pre id="yaml-out"></pre>
+        <button class="copy-btn" id="copy-btn" onclick="copyYAML()">Копировать</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const IDS = ['type','text','details','state','large_image','large_image_text','small_image','small_image_text'];
+
+const TYPE_HEADERS = {
+  playing:   'ИГРАЕТ В',
+  watching:  'СМОТРИТ',
+  listening: 'СЛУШАЕТ',
+  competing: 'СОРЕВНУЕТСЯ В',
+};
+
+function val(id) { return document.getElementById(id).value.trim(); }
+
+function escYAML(s) {
+  if (s === '') return '""';
+  if (/[:#\[\]{}&*!,|>\'"\\%@`]/.test(s) || /^\s|\s$/.test(s))
+    return '"' + s.replace(/\\/g,'\\\\').replace(/"/g,'\\"') + '"';
+  return s;
+}
+
+function highlight(key, value) {
+  const k = `<span class="y-key">${key}:</span>`;
+  if (value === '""') return `${k} <span class="y-empty">""</span>`;
+  return `${k} <span class="y-str">${value}</span>`;
+}
+
+function renderYAML() {
+  const t = val('type') || 'playing';
+  const lines = [
+    `<span class="y-comment"># discord.activity</span>`,
+    `<span class="y-key">activity:</span>`,
+    `  ${highlight('type',            escYAML(t))}`,
+    `  ${highlight('text',            escYAML(val('text')))}`,
+    `  ${highlight('details',         escYAML(val('details')))}`,
+    `  ${highlight('state',           escYAML(val('state')))}`,
+    `  ${highlight('large_image',     escYAML(val('large_image')))}`,
+    `  ${highlight('large_image_text',escYAML(val('large_image_text')))}`,
+    `  ${highlight('small_image',     escYAML(val('small_image')))}`,
+    `  ${highlight('small_image_text',escYAML(val('small_image_text')))}`,
+  ];
+  document.getElementById('yaml-out').innerHTML = lines.join('\n');
+}
+
+function renderCard() {
+  const t = val('type') || 'playing';
+
+  // Header
+  document.getElementById('activity-header').textContent = TYPE_HEADERS[t] || 'ИГРАЕТ В';
+
+  // Activity name
+  const name = val('text');
+  const actName = document.getElementById('act-name');
+  actName.textContent = name || '—';
+
+  // Details
+  const details = val('details');
+  const actDetails = document.getElementById('act-details');
+  if (details) {
+    actDetails.textContent = details;
+    actDetails.style.display = '';
+    actDetails.className = 'popup-act-line';
+  } else {
+    actDetails.style.display = 'none';
+  }
+
+  // State
+  const state = val('state');
+  const actState = document.getElementById('act-state');
+  if (state) {
+    actState.textContent = state;
+    actState.style.display = '';
+    actState.className = 'popup-act-line';
+  } else {
+    actState.style.display = 'none';
+  }
+
+  // Images
+  const li = val('large_image');
+  const si = val('small_image');
+  const body = document.getElementById('activity-body');
+  const textEl = document.getElementById('activity-text');
+
+  // Remove existing image wrap if present
+  const existing = document.getElementById('img-wrap');
+  if (existing) existing.remove();
+
+  if (li) {
+    const wrap = document.createElement('div');
+    wrap.id = 'img-wrap';
+    wrap.className = 'popup-img-wrap';
+
+    const largeEl = document.createElement('div');
+    largeEl.className = 'popup-large-img';
+    largeEl.textContent = '🖼️';
+    largeEl.title = val('large_image_text') || li;
+    wrap.appendChild(largeEl);
+
+    if (si) {
+      const smallEl = document.createElement('div');
+      smallEl.className = 'popup-small-img';
+      smallEl.textContent = '·';
+      smallEl.title = val('small_image_text') || si;
+      wrap.appendChild(smallEl);
+    }
+
+    body.insertBefore(wrap, textEl);
+    body.classList.remove('no-image');
+  } else {
+    body.classList.add('no-image');
+  }
+}
+
+function update() { renderYAML(); renderCard(); }
+
+function plainYAML() {
+  const t = val('type') || 'playing';
+  return [
+    'activity:',
+    `  type: ${escYAML(t)}`,
+    `  text: ${escYAML(val('text'))}`,
+    `  details: ${escYAML(val('details'))}`,
+    `  state: ${escYAML(val('state'))}`,
+    `  large_image: ${escYAML(val('large_image'))}`,
+    `  large_image_text: ${escYAML(val('large_image_text'))}`,
+    `  small_image: ${escYAML(val('small_image'))}`,
+    `  small_image_text: ${escYAML(val('small_image_text'))}`,
+  ].join('\n');
+}
+
+function copyYAML() {
+  navigator.clipboard.writeText(plainYAML()).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✓ Скопировано';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Копировать'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+IDS.forEach(id => document.getElementById(id).addEventListener('input', update));
+update();
+</script>
+</body>
+</html>
