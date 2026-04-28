@@ -116,7 +116,7 @@ tailwind.config = {
              class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
     </div>
 
-    <div class="grid grid-cols-2 gap-2.5">
+    <div class="grid grid-cols-2 gap-2.5 mb-3.5">
       <div>
         <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">Small Image Key</label>
         <input type="text" id="small_image" placeholder=""
@@ -125,6 +125,53 @@ tailwind.config = {
       <div>
         <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">Small Image Text</label>
         <input type="text" id="small_image_text" placeholder=""
+               class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
+      </div>
+    </div>
+
+    <div class="text-[11px] font-bold uppercase tracking-widest text-dc-muted mb-3 mt-5">Временные метки</div>
+
+    <div class="mb-3.5 flex items-center gap-3">
+      <label class="relative inline-flex items-center cursor-pointer select-none">
+        <input type="checkbox" id="ts_start_now" class="sr-only peer">
+        <div class="w-9 h-5 bg-dc-border rounded-full peer peer-checked:bg-dc-accent transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
+      </label>
+      <div>
+        <div class="text-[13px] font-medium text-dc-text">Показывать время запуска</div>
+        <div class="text-[11px] text-dc-muted">Discord покажет "01:23 elapsed" — время с момента старта бота</div>
+      </div>
+    </div>
+
+    <div class="mb-3.5">
+      <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">
+        Конец активности <span class="font-normal normal-case tracking-normal text-[#6d6f78] ml-1">— обратный отсчёт</span>
+      </label>
+      <input type="datetime-local" id="ts_end"
+             class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors [color-scheme:dark]">
+      <div class="text-[11px] text-dc-muted mt-1">Discord покажет "04:37 left". Оставьте пустым, чтобы отключить.</div>
+    </div>
+
+    <div class="text-[11px] font-bold uppercase tracking-widest text-dc-muted mb-3 mt-5">Пати</div>
+
+    <div class="mb-3.5">
+      <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">
+        Party ID <span class="font-normal normal-case tracking-normal text-[#6d6f78] ml-1">— идентификатор группы</span>
+      </label>
+      <input type="text" id="party_id" placeholder=""
+             class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
+    </div>
+
+    <div class="grid grid-cols-2 gap-2.5">
+      <div>
+        <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">Текущий размер</label>
+        <input type="number" id="party_current" placeholder="0" min="0"
+               class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
+      </div>
+      <div>
+        <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">
+          Макс. размер <span class="font-normal normal-case tracking-normal text-[#6d6f78]">— 0 = выкл.</span>
+        </label>
+        <input type="number" id="party_max" placeholder="0" min="0"
                class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
       </div>
     </div>
@@ -160,6 +207,17 @@ tailwind.config = {
               <div class="text-[13px] font-bold text-[#f2f3f5] truncate mb-0.5" id="act-name">аниме реакции</div>
               <div class="text-[12px] text-dc-muted truncate mb-px hidden" id="act-details"></div>
               <div class="text-[12px] text-dc-muted truncate hidden" id="act-state"></div>
+              <div class="text-[12px] text-dc-muted truncate mt-0.5 hidden" id="act-party"></div>
+            </div>
+          </div>
+          <!-- Timestamp bar -->
+          <div id="ts-bar" class="hidden mt-2.5">
+            <div class="flex justify-between text-[11px] text-dc-muted mb-1">
+              <span id="ts-elapsed" class="hidden">00:00 elapsed</span>
+              <span id="ts-remaining" class="hidden"></span>
+            </div>
+            <div class="h-1 bg-dc-border rounded-full overflow-hidden">
+              <div id="ts-progress" class="h-full bg-dc-accent rounded-full transition-all" style="width:30%"></div>
             </div>
           </div>
         </div>
@@ -182,7 +240,8 @@ tailwind.config = {
 </div>
 
 <script>
-const IDS = ['type','text','details','state','large_image','large_image_text','small_image','small_image_text'];
+const TEXT_IDS = ['type','text','details','state','large_image','large_image_text','small_image','small_image_text','ts_end','party_id','party_current','party_max'];
+const CHECK_IDS = ['ts_start_now'];
 
 const TYPE_HEADERS = {
   playing:   'ИГРАЕТ В',
@@ -191,7 +250,8 @@ const TYPE_HEADERS = {
   competing: 'СОРЕВНУЕТСЯ В',
 };
 
-function val(id) { return document.getElementById(id).value.trim(); }
+function val(id)     { return document.getElementById(id).value.trim(); }
+function checked(id) { return document.getElementById(id).checked; }
 
 function escYAML(s) {
   if (s === '') return '""';
@@ -202,12 +262,23 @@ function escYAML(s) {
 
 function highlight(key, value) {
   const k = `<span class="y-key">${key}:</span>`;
-  if (value === '""') return `${k} <span class="y-empty">""</span>`;
+  if (value === '""' || value === '0' || value === 'false') return `${k} <span class="y-empty">${value}</span>`;
   return `${k} <span class="y-str">${value}</span>`;
+}
+
+function tsEndUnix() {
+  const v = val('ts_end');
+  if (!v) return 0;
+  return Math.floor(new Date(v).getTime() / 1000);
 }
 
 function renderYAML() {
   const t = val('type') || 'playing';
+  const endUnix = tsEndUnix();
+  const startNow = checked('ts_start_now');
+  const cur = parseInt(val('party_current')) || 0;
+  const max = parseInt(val('party_max'))     || 0;
+
   const lines = [
     `<span class="y-comment"># discord.activity</span>`,
     `<span class="y-key">activity:</span>`,
@@ -219,14 +290,22 @@ function renderYAML() {
     `  ${highlight('large_image_text',escYAML(val('large_image_text')))}`,
     `  ${highlight('small_image',     escYAML(val('small_image')))}`,
     `  ${highlight('small_image_text',escYAML(val('small_image_text')))}`,
+    `  <span class="y-key">timestamps:</span>`,
+    `    ${highlight('start_now', String(startNow))}`,
+    `    ${highlight('end',       String(endUnix))}`,
+    `  <span class="y-key">party:</span>`,
+    `    ${highlight('id',           escYAML(val('party_id')))}`,
+    `    ${highlight('current_size', String(cur))}`,
+    `    ${highlight('max_size',     String(max))}`,
   ];
   document.getElementById('yaml-out').innerHTML = lines.join('\n');
 }
 
+let tsTimer = null;
+
 function renderCard() {
   const t = val('type') || 'playing';
   document.getElementById('activity-header').textContent = TYPE_HEADERS[t] || 'ИГРАЕТ В';
-
   document.getElementById('act-name').textContent = val('text') || '—';
 
   const details = val('details');
@@ -239,6 +318,18 @@ function renderCard() {
   actState.textContent = state;
   actState.classList.toggle('hidden', !state);
 
+  // Party size line
+  const cur = parseInt(val('party_current')) || 0;
+  const max = parseInt(val('party_max'))     || 0;
+  const actParty = document.getElementById('act-party');
+  if (max > 0) {
+    actParty.textContent = `${cur} из ${max} в группе`;
+    actParty.classList.remove('hidden');
+  } else {
+    actParty.classList.add('hidden');
+  }
+
+  // Images
   const li = val('large_image');
   const si = val('small_image');
   const body = document.getElementById('activity-body');
@@ -268,12 +359,72 @@ function renderCard() {
 
     body.insertBefore(wrap, textEl);
   }
+
+  // Timestamp bar
+  const startNow = checked('ts_start_now');
+  const endUnix  = tsEndUnix();
+  const tsBar     = document.getElementById('ts-bar');
+  const tsElapsed = document.getElementById('ts-elapsed');
+  const tsRemaining = document.getElementById('ts-remaining');
+  const tsProgress  = document.getElementById('ts-progress');
+
+  if (tsTimer) { clearInterval(tsTimer); tsTimer = null; }
+
+  if (startNow || endUnix > 0) {
+    tsBar.classList.remove('hidden');
+    const startMs = startNow ? Date.now() : null;
+
+    function tickTs() {
+      const now = Date.now();
+
+      if (startMs !== null) {
+        const elapsed = Math.floor((now - startMs) / 1000);
+        tsElapsed.textContent = fmtDur(elapsed) + ' elapsed';
+        tsElapsed.classList.remove('hidden');
+      } else {
+        tsElapsed.classList.add('hidden');
+      }
+
+      if (endUnix > 0) {
+        const rem = Math.max(0, endUnix - Math.floor(now / 1000));
+        tsRemaining.textContent = fmtDur(rem) + ' left';
+        tsRemaining.classList.remove('hidden');
+        if (startMs !== null) {
+          const total = endUnix - Math.floor(startMs / 1000);
+          const pct = total > 0 ? Math.min(100, Math.round((1 - rem / total) * 100)) : 100;
+          tsProgress.style.width = pct + '%';
+        } else {
+          tsProgress.style.width = '30%';
+        }
+      } else {
+        tsRemaining.classList.add('hidden');
+        tsProgress.style.width = startMs !== null ? '30%' : '0%';
+      }
+    }
+
+    tickTs();
+    tsTimer = setInterval(tickTs, 1000);
+  } else {
+    tsBar.classList.add('hidden');
+  }
+}
+
+function fmtDur(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
 function update() { renderYAML(); renderCard(); }
 
 function plainYAML() {
-  const t = val('type') || 'playing';
+  const t      = val('type') || 'playing';
+  const endUnix = tsEndUnix();
+  const startNow = checked('ts_start_now');
+  const cur = parseInt(val('party_current')) || 0;
+  const max = parseInt(val('party_max'))     || 0;
   return [
     'activity:',
     `  type: ${escYAML(t)}`,
@@ -284,6 +435,13 @@ function plainYAML() {
     `  large_image_text: ${escYAML(val('large_image_text'))}`,
     `  small_image: ${escYAML(val('small_image'))}`,
     `  small_image_text: ${escYAML(val('small_image_text'))}`,
+    `  timestamps:`,
+    `    start_now: ${startNow}`,
+    `    end: ${endUnix}`,
+    `  party:`,
+    `    id: ${escYAML(val('party_id'))}`,
+    `    current_size: ${cur}`,
+    `    max_size: ${max}`,
   ].join('\n');
 }
 
@@ -299,7 +457,8 @@ function copyYAML() {
   });
 }
 
-IDS.forEach(id => document.getElementById(id).addEventListener('input', update));
+TEXT_IDS.forEach(id => document.getElementById(id).addEventListener('input', update));
+CHECK_IDS.forEach(id => document.getElementById(id).addEventListener('change', update));
 update();
 </script>
 </body>

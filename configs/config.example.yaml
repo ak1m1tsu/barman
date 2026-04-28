@@ -14,6 +14,13 @@ discord:
     large_image_text: ""         # tooltip shown on hover over large image
     small_image: ""              # asset key from Discord Dev Portal
     small_image_text: ""         # tooltip shown on hover over small image
+    timestamps:
+      start_now: false           # show elapsed time since bot started ("01:23 elapsed")
+      end: 0                     # Unix timestamp (seconds) for countdown display; 0 to disable
+    party:
+      id: ""                     # opaque party identifier (leave empty if unused)
+      current_size: 0            # current party members
+      max_size: 0                # max party size; when > 0 shows "N of M" in Discord
 database:
   path: "barman.db"
 

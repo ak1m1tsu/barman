@@ -39,14 +39,34 @@ type DiscordConfig struct {
 // Image asset keys (LargeImage, SmallImage) must be uploaded in the Discord
 // Developer Portal under Applications → Rich Presence → Art Assets first.
 type ActivityConfig struct {
-	Type           string `yaml:"type"`             // playing | watching | listening | competing
-	Text           string `yaml:"text"`             // main activity name
-	Details        string `yaml:"details"`          // secondary line (may not show in all clients)
-	State          string `yaml:"state"`            // tertiary line
-	LargeImage     string `yaml:"large_image"`      // asset key from Discord Dev Portal
-	LargeImageText string `yaml:"large_image_text"` // tooltip for large image
-	SmallImage     string `yaml:"small_image"`      // asset key from Discord Dev Portal
-	SmallImageText string `yaml:"small_image_text"` // tooltip for small image
+	Type           string           `yaml:"type"`             // playing | watching | listening | competing
+	Text           string           `yaml:"text"`             // main activity name
+	Details        string           `yaml:"details"`          // secondary line (may not show in all clients)
+	State          string           `yaml:"state"`            // tertiary line
+	LargeImage     string           `yaml:"large_image"`      // asset key from Discord Dev Portal
+	LargeImageText string           `yaml:"large_image_text"` // tooltip for large image
+	SmallImage     string           `yaml:"small_image"`      // asset key from Discord Dev Portal
+	SmallImageText string           `yaml:"small_image_text"` // tooltip for small image
+	Timestamps     TimestampsConfig `yaml:"timestamps"`
+	Party          PartyConfig      `yaml:"party"`
+}
+
+// TimestampsConfig controls the rich-presence timestamp bar shown under the activity.
+// StartNow causes the start timestamp to be set to the moment the bot connects,
+// displaying elapsed time ("01:23 elapsed"). End is a fixed Unix timestamp in
+// seconds; when set, Discord shows a countdown ("04:37 left").
+type TimestampsConfig struct {
+	StartNow bool  `yaml:"start_now"` // use bot startup time as start
+	End      int64 `yaml:"end"`       // Unix seconds (0 = disabled)
+}
+
+// PartyConfig populates the Discord rich-presence party field.
+// When MaxSize > 0 the client renders "CurrentSize of MaxSize" next to the activity.
+// ID is an opaque string used by Discord to group party members; leave empty if unused.
+type PartyConfig struct {
+	ID          string `yaml:"id"`
+	CurrentSize int    `yaml:"current_size"`
+	MaxSize     int    `yaml:"max_size"`
 }
 
 // DatabaseConfig holds the file-system path of the SQLite database.

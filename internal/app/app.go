@@ -172,6 +172,25 @@ func (a *App) applyActivity() error {
 		}
 	}
 
+	ts := a.activity.Timestamps
+	if ts.StartNow || ts.End != 0 {
+		act.Timestamps = discordgo.TimeStamps{}
+		if ts.StartNow {
+			act.Timestamps.StartTimestamp = time.Now().UnixMilli()
+		}
+		if ts.End != 0 {
+			act.Timestamps.EndTimestamp = ts.End * 1000
+		}
+	}
+
+	p := a.activity.Party
+	if p.ID != "" || p.MaxSize > 0 {
+		act.Party = discordgo.Party{ID: p.ID}
+		if p.MaxSize > 0 {
+			act.Party.Size = []int{p.CurrentSize, p.MaxSize}
+		}
+	}
+
 	switch a.activity.Type {
 	case "watching":
 		act.Type = discordgo.ActivityTypeWatching
