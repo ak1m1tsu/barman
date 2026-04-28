@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barman — Activity Configurator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        dc: {
+          bg:      '#1e1f22',
+          surface: '#2b2d31',
+          border:  '#3b3d44',
+          accent:  '#5865f2',
+          text:    '#dbdee1',
+          muted:   '#949ba4',
+          popup:   '#111214',
+        }
+      },
+      fontFamily: {
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        mono: ['"JetBrains Mono"', '"Fira Code"', '"Cascadia Code"', 'monospace'],
+      }
+    }
+  }
+}
+</script>
+<style>
+  .y-key     { color: #7dd3fc; }
+  .y-str     { color: #86efac; }
+  .y-empty   { color: #555; }
+  .y-comment { color: #6b7280; font-style: italic; }
+  select option { background: #1e1f22; }
+</style>
+</head>
+<body class="bg-dc-bg text-dc-text text-sm leading-relaxed min-h-screen font-sans">
+
+<header class="bg-dc-surface border-b border-dc-border px-6 py-4 flex items-center gap-3">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="6" fill="#5865F2"/>
+    <path d="M8 8.5C8 7.12 9.12 6 10.5 6h3C14.88 6 16 7.12 16 8.5V10h1a1 1 0 0 1 0 2h-1v1.5C16 14.88 14.88 16 13.5 16h-3C9.12 16 8 14.88 8 13.5V12H7a1 1 0 0 1 0-2h1V8.5Z" fill="white"/>
+  </svg>
+  <h1 class="text-lg font-semibold">Barman</h1>
+  <span class="text-dc-muted text-[13px]">Activity Configurator</span>
+</header>
+
+<div class="grid h-[calc(100vh-57px)]" style="grid-template-columns: 420px 1fr">
+
+  <!-- Form panel -->
+  <div class="bg-dc-surface border-r border-dc-border p-6 overflow-y-auto">
+
+    <div class="text-[11px] font-bold uppercase tracking-widest text-dc-muted mb-3">Активность</div>
+
+    <div class="mb-3.5">
+      <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">Тип</label>
+      <select id="type" class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors cursor-pointer">
+        <option value="playing">Playing (Играет в)</option>
+        <option value="watching" selected>Watching (Смотрит)</option>
+        <option value="listening">Listening to (Слушает)</option>
+        <option value="competing">Competing in (Соревнуется в)</option>
+      </select>
+    </div>
+
+    <div class="mb-3.5">
+      <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">
+        Название <span class="font-normal normal-case tracking-normal text-[#6d6f78] ml-1">— основной текст</span>
+      </label>
+      <input type="text" id="text" placeholder="аниме реакции" value="аниме реакции"
+             class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
+    </div>
+
+    <div class="mb-3.5">
+      <label class="block text-[12px] font-semibold text-dc-muted uppercase tracking-wider mb-1.5">
+        State <span class="font-normal normal-case tracking-normal text-[#6d6f78] ml-1">— строка под названием</span>
+      </label>
+      <input type="text" id="state" placeholder=""
+             class="w-full bg-dc-bg border border-dc-border rounded-lg text-dc-text px-3 py-2 text-sm outline-none focus:border-dc-accent transition-colors">
+    </div>
+
+  </div>
+
+  <!-- Preview panel -->
+  <div class="p-6 flex flex-col gap-6 overflow-y-auto">
+
+    <!-- Discord popup mockup -->
+    <div>
+      <div class="text-[11px] font-bold uppercase tracking-widest text-dc-muted mb-2">Предпросмотр — профиль Discord</div>
+      <div class="bg-dc-popup rounded-[10px] w-[300px] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,.6)] border border-white/[.06]">
+
+        <div class="h-[60px] bg-gradient-to-br from-[#5865f2] to-[#eb459e]"></div>
+
+        <div class="flex items-end px-4 -mt-6 mb-3">
+          <div class="w-[72px] h-[72px] rounded-full bg-[#5865f2] border-[6px] border-dc-popup flex items-center justify-center text-[28px] shrink-0">🤖</div>
+          <div class="w-4 h-4 rounded-full bg-[#23a55a] border-[3px] border-dc-popup -ml-[18px] mb-1"></div>
+        </div>
+
+        <div class="px-4 mb-3">
+          <div class="text-base font-bold text-[#f2f3f5]">Barman</div>
+          <div class="text-[13px] text-dc-muted">barman_bot</div>
+        </div>
+
+        <div class="h-px bg-dc-border mx-4 mb-3"></div>
+
+        <div class="px-4 pb-4">
+          <div class="text-[11px] font-bold uppercase tracking-widest text-dc-text mb-2" id="activity-header">СМОТРИТ</div>
+          <div class="text-[13px] font-bold text-[#f2f3f5] truncate mb-0.5" id="act-name">аниме реакции</div>
+          <div class="text-[12px] text-dc-muted truncate hidden" id="act-state"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- YAML snippet -->
+    <div>
+      <div class="text-[11px] font-bold uppercase tracking-widest text-dc-muted mb-2">Фрагмент конфига (discord.activity)</div>
+      <div class="relative bg-dc-bg border border-dc-border rounded-lg overflow-hidden">
+        <pre id="yaml-out" class="font-mono text-[13px] leading-[1.7] p-4 overflow-x-auto whitespace-pre text-dc-text"></pre>
+        <button id="copy-btn" onclick="copyYAML()"
+                class="absolute top-2 right-2 bg-dc-accent hover:bg-[#4752c4] active:scale-95 text-white border-0 rounded-md px-3 py-1 text-[12px] font-semibold cursor-pointer transition-all">
+          Копировать
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const TYPE_HEADERS = {
+  playing:   'ИГРАЕТ В',
+  watching:  'СМОТРИТ',
+  listening: 'СЛУШАЕТ',
+  competing: 'СОРЕВНУЕТСЯ В',
+};
+
+function val(id) { return document.getElementById(id).value.trim(); }
+
+function escYAML(s) {
+  if (s === '') return '""';
+  if (/[:#\[\]{}&*!,|>\'"\\%@`]/.test(s) || /^\s|\s$/.test(s))
+    return '"' + s.replace(/\\/g,'\\\\').replace(/"/g,'\\"') + '"';
+  return s;
+}
+
+function highlight(key, value) {
+  const k = `<span class="y-key">${key}:</span>`;
+  if (value === '""') return `${k} <span class="y-empty">""</span>`;
+  return `${k} <span class="y-str">${value}</span>`;
+}
+
+function renderYAML() {
+  const t = val('type') || 'playing';
+  const lines = [
+    `<span class="y-comment"># discord.activity</span>`,
+    `<span class="y-key">activity:</span>`,
+    `  ${highlight('type',  escYAML(t))}`,
+    `  ${highlight('text',  escYAML(val('text')))}`,
+    `  ${highlight('state', escYAML(val('state')))}`,
+  ];
+  document.getElementById('yaml-out').innerHTML = lines.join('\n');
+}
+
+function renderCard() {
+  const t = val('type') || 'playing';
+  document.getElementById('activity-header').textContent = TYPE_HEADERS[t] || 'ИГРАЕТ В';
+  document.getElementById('act-name').textContent = val('text') || '—';
+
+  const state = val('state');
+  const actState = document.getElementById('act-state');
+  actState.textContent = state;
+  actState.classList.toggle('hidden', !state);
+}
+
+function update() { renderYAML(); renderCard(); }
+
+function plainYAML() {
+  const t = val('type') || 'playing';
+  return [
+    'activity:',
+    `  type: ${escYAML(t)}`,
+    `  text: ${escYAML(val('text'))}`,
+    `  state: ${escYAML(val('state'))}`,
+  ].join('\n');
+}
+
+function copyYAML() {
+  navigator.clipboard.writeText(plainYAML()).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✓ Скопировано';
+    btn.classList.replace('bg-dc-accent', 'bg-[#2d7a4f]');
+    setTimeout(() => {
+      btn.textContent = 'Копировать';
+      btn.classList.replace('bg-[#2d7a4f]', 'bg-dc-accent');
+    }, 2000);
+  });
+}
+
+['type','text','state'].forEach(id => document.getElementById(id).addEventListener('input', update));
+update();
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-.PHONY: lint test mock build docker-build up down hooks
+.PHONY: lint test mock build run config-ui docker-build up down hooks
 
 lint:
 	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint:latest golangci-lint run
@@ -14,6 +14,9 @@ build:
 
 run: build
 	./bin/bot --config ./configs/config.yaml
+
+config-ui:
+	go run ./cmd/config-ui/
 
 docker-build:
 	docker build -t barman .

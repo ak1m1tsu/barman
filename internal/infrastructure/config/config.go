@@ -27,11 +27,21 @@ type NotificationsConfig struct {
 // DiscordConfig holds the Discord bot credentials and guild-specific settings.
 // GuildID may be empty, in which case commands are registered globally.
 type DiscordConfig struct {
-	Token    string   `yaml:"token"`
-	AppID    string   `yaml:"app_id"`
-	GuildID  string   `yaml:"guild_id"`
-	Prefix   string   `yaml:"prefix"`
-	OwnerIDs []string `yaml:"owner_ids"`
+	Token    string         `yaml:"token"`
+	AppID    string         `yaml:"app_id"`
+	GuildID  string         `yaml:"guild_id"`
+	Prefix   string         `yaml:"prefix"`
+	OwnerIDs []string       `yaml:"owner_ids"`
+	Activity ActivityConfig `yaml:"activity"`
+}
+
+// ActivityConfig holds Discord presence/activity settings.
+// Only Type, Text, and State are rendered by Discord clients for bot gateway presence;
+// Rich Presence fields (images, party, timestamps) are not supported for bots.
+type ActivityConfig struct {
+	Type  string `yaml:"type"`  // playing | watching | listening | competing
+	Text  string `yaml:"text"`  // main activity name (leave empty to disable)
+	State string `yaml:"state"` // line shown below the activity name
 }
 
 // DatabaseConfig holds the file-system path of the SQLite database.

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
 	"github.com/ak1m1tsu/barman/internal/adapter/command"
@@ -28,6 +29,7 @@ type App struct {
 	db           *sql.DB
 	registry     *command.Registry
 	webhookHooks []*discord.WebhookHook
+	activity     config.ActivityConfig
 }
 
 // New wires all dependencies from cfg and returns a ready-to-run App.
@@ -118,7 +120,13 @@ func New(cfg *config.Config) (*App, error) {
 
 	log.Info("all dependencies wired")
 
-	return &App{bot: bot, db: db, registry: registry, webhookHooks: webhookHooks}, nil
+	return &App{
+		bot:          bot,
+		db:           db,
+		registry:     registry,
+		webhookHooks: webhookHooks,
+		activity:     cfg.Discord.Activity,
+	}, nil
 }
 
 // Run opens the Discord gateway session and registers slash commands with Discord.
@@ -136,8 +144,39 @@ func (a *App) Run() error {
 		}
 	}
 
+	if a.activity.Text != "" {
+		if err := a.applyActivity(); err != nil {
+			log.WithError(err).Warn("failed to set bot activity")
+		}
+	}
+
 	logrus.Info("bot is running")
 	return nil
+}
+
+// applyActivity sets the bot's gateway presence. Only name, type, and state are
+// rendered by Discord clients for bot presence; other Rich Presence fields are ignored.
+func (a *App) applyActivity() error {
+	act := &discordgo.Activity{
+		Name:  a.activity.Text,
+		State: a.activity.State,
+	}
+
+	switch a.activity.Type {
+	case "watching":
+		act.Type = discordgo.ActivityTypeWatching
+	case "listening":
+		act.Type = discordgo.ActivityTypeListening
+	case "competing":
+		act.Type = discordgo.ActivityTypeCompeting
+	default: // "playing" or empty
+		act.Type = discordgo.ActivityTypeGame
+	}
+
+	return a.bot.Session.UpdateStatusComplex(discordgo.UpdateStatusData{
+		Status:     "online",
+		Activities: []*discordgo.Activity{act},
+	})
 }
 
 // Close drains in-flight webhook goroutines, then shuts down the Discord
