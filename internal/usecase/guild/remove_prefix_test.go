@@ -16,16 +16,36 @@ import (
 func TestRemovePrefix_Execute(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("saves guild with empty prefix", func(t *testing.T) {
+	t.Run("clears prefix while preserving auto_role", func(t *testing.T) {
+		existing := &domain.Guild{ID: "guild1", AutoRoleID: "role1", Prefix: "!"}
 		repo := mockguild.NewMockRepository(t)
-		repo.EXPECT().Save(ctx, &domain.Guild{ID: "guild1", Prefix: ""}).Return(nil)
+		repo.EXPECT().FindByID(ctx, "guild1").Return(existing, nil)
+		repo.EXPECT().Save(ctx, &domain.Guild{ID: "guild1", AutoRoleID: "role1", Prefix: ""}).Return(nil)
 
 		uc := guilduc.NewRemovePrefix(repo)
 		require.NoError(t, uc.Execute(ctx, "guild1"))
 	})
 
-	t.Run("propagates repository error", func(t *testing.T) {
+	t.Run("no-op when guild not found", func(t *testing.T) {
 		repo := mockguild.NewMockRepository(t)
+		repo.EXPECT().FindByID(ctx, "guild1").Return(nil, nil)
+
+		uc := guilduc.NewRemovePrefix(repo)
+		require.NoError(t, uc.Execute(ctx, "guild1"))
+	})
+
+	t.Run("propagates FindByID error", func(t *testing.T) {
+		repo := mockguild.NewMockRepository(t)
+		repo.EXPECT().FindByID(ctx, "guild1").Return(nil, errors.New("db error"))
+
+		uc := guilduc.NewRemovePrefix(repo)
+		assert.Error(t, uc.Execute(ctx, "guild1"))
+	})
+
+	t.Run("propagates Save error", func(t *testing.T) {
+		existing := &domain.Guild{ID: "guild1", Prefix: "!"}
+		repo := mockguild.NewMockRepository(t)
+		repo.EXPECT().FindByID(ctx, "guild1").Return(existing, nil)
 		repo.EXPECT().Save(ctx, &domain.Guild{ID: "guild1", Prefix: ""}).
 			Return(errors.New("db error"))
 

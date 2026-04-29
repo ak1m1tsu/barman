@@ -17,8 +17,13 @@ func NewSetAutoRole(repo guild.Repository) *SetAutoRoleUseCase {
 }
 
 func (uc *SetAutoRoleUseCase) Execute(ctx context.Context, guildID, roleID string) error {
-	return uc.repo.Save(ctx, &guild.Guild{
-		ID:         guildID,
-		AutoRoleID: roleID,
-	})
+	g, err := uc.repo.FindByID(ctx, guildID)
+	if err != nil {
+		return err
+	}
+	if g == nil {
+		g = &guild.Guild{ID: guildID}
+	}
+	g.AutoRoleID = roleID
+	return uc.repo.Save(ctx, g)
 }

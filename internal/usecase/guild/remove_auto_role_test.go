@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	domain "github.com/ak1m1tsu/barman/internal/domain/guild"
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 	mockguild "github.com/ak1m1tsu/barman/mocks/guild"
 )
@@ -15,17 +16,38 @@ import (
 func TestRemoveAutoRole_Execute(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("deletes guild settings", func(t *testing.T) {
+	t.Run("clears auto_role while preserving prefix", func(t *testing.T) {
+		existing := &domain.Guild{ID: "guild1", AutoRoleID: "role1", Prefix: "!"}
 		repo := mockguild.NewMockRepository(t)
-		repo.EXPECT().Delete(ctx, "guild1").Return(nil)
+		repo.EXPECT().FindByID(ctx, "guild1").Return(existing, nil)
+		repo.EXPECT().Save(ctx, &domain.Guild{ID: "guild1", AutoRoleID: "", Prefix: "!"}).Return(nil)
 
 		uc := guilduc.NewRemoveAutoRole(repo)
 		require.NoError(t, uc.Execute(ctx, "guild1"))
 	})
 
-	t.Run("propagates repository error", func(t *testing.T) {
+	t.Run("no-op when guild not found", func(t *testing.T) {
 		repo := mockguild.NewMockRepository(t)
-		repo.EXPECT().Delete(ctx, "guild1").Return(errors.New("db error"))
+		repo.EXPECT().FindByID(ctx, "guild1").Return(nil, nil)
+
+		uc := guilduc.NewRemoveAutoRole(repo)
+		require.NoError(t, uc.Execute(ctx, "guild1"))
+	})
+
+	t.Run("propagates FindByID error", func(t *testing.T) {
+		repo := mockguild.NewMockRepository(t)
+		repo.EXPECT().FindByID(ctx, "guild1").Return(nil, errors.New("db error"))
+
+		uc := guilduc.NewRemoveAutoRole(repo)
+		assert.Error(t, uc.Execute(ctx, "guild1"))
+	})
+
+	t.Run("propagates Save error", func(t *testing.T) {
+		existing := &domain.Guild{ID: "guild1", AutoRoleID: "role1", Prefix: "!"}
+		repo := mockguild.NewMockRepository(t)
+		repo.EXPECT().FindByID(ctx, "guild1").Return(existing, nil)
+		repo.EXPECT().Save(ctx, &domain.Guild{ID: "guild1", AutoRoleID: "", Prefix: "!"}).
+			Return(errors.New("db error"))
 
 		uc := guilduc.NewRemoveAutoRole(repo)
 		assert.Error(t, uc.Execute(ctx, "guild1"))

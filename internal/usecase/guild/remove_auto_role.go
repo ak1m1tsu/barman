@@ -17,5 +17,13 @@ func NewRemoveAutoRole(repo guild.Repository) *RemoveAutoRoleUseCase {
 }
 
 func (uc *RemoveAutoRoleUseCase) Execute(ctx context.Context, guildID string) error {
-	return uc.repo.Delete(ctx, guildID)
+	g, err := uc.repo.FindByID(ctx, guildID)
+	if err != nil {
+		return err
+	}
+	if g == nil {
+		return nil
+	}
+	g.AutoRoleID = ""
+	return uc.repo.Save(ctx, g)
 }
