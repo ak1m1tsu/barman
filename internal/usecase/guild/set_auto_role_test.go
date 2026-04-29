@@ -16,16 +16,36 @@ import (
 func TestSetAutoRole_Execute(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("saves guild with role", func(t *testing.T) {
+	t.Run("preserves existing prefix when setting auto_role", func(t *testing.T) {
+		existing := &domain.Guild{ID: "guild1", AutoRoleID: "", Prefix: "!"}
 		repo := mockguild.NewMockRepository(t)
+		repo.EXPECT().FindByID(ctx, "guild1").Return(existing, nil)
+		repo.EXPECT().Save(ctx, &domain.Guild{ID: "guild1", AutoRoleID: "role1", Prefix: "!"}).Return(nil)
+
+		uc := guilduc.NewSetAutoRole(repo)
+		require.NoError(t, uc.Execute(ctx, "guild1", "role1"))
+	})
+
+	t.Run("creates new guild row when none exists", func(t *testing.T) {
+		repo := mockguild.NewMockRepository(t)
+		repo.EXPECT().FindByID(ctx, "guild1").Return(nil, nil)
 		repo.EXPECT().Save(ctx, &domain.Guild{ID: "guild1", AutoRoleID: "role1"}).Return(nil)
 
 		uc := guilduc.NewSetAutoRole(repo)
 		require.NoError(t, uc.Execute(ctx, "guild1", "role1"))
 	})
 
-	t.Run("propagates repository error", func(t *testing.T) {
+	t.Run("propagates FindByID error", func(t *testing.T) {
 		repo := mockguild.NewMockRepository(t)
+		repo.EXPECT().FindByID(ctx, "guild1").Return(nil, errors.New("db error"))
+
+		uc := guilduc.NewSetAutoRole(repo)
+		assert.Error(t, uc.Execute(ctx, "guild1", "role1"))
+	})
+
+	t.Run("propagates Save error", func(t *testing.T) {
+		repo := mockguild.NewMockRepository(t)
+		repo.EXPECT().FindByID(ctx, "guild1").Return(nil, nil)
 		repo.EXPECT().Save(ctx, &domain.Guild{ID: "guild1", AutoRoleID: "role1"}).
 			Return(errors.New("db error"))
 

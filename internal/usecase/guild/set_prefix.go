@@ -17,8 +17,13 @@ func NewSetPrefix(repo guild.Repository) *SetPrefixUseCase {
 }
 
 func (uc *SetPrefixUseCase) Execute(ctx context.Context, guildID, prefix string) error {
-	return uc.repo.Save(ctx, &guild.Guild{
-		ID:     guildID,
-		Prefix: prefix,
-	})
+	g, err := uc.repo.FindByID(ctx, guildID)
+	if err != nil {
+		return err
+	}
+	if g == nil {
+		g = &guild.Guild{ID: guildID}
+	}
+	g.Prefix = prefix
+	return uc.repo.Save(ctx, g)
 }

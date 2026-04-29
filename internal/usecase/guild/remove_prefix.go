@@ -17,8 +17,13 @@ func NewRemovePrefix(repo guild.Repository) *RemovePrefixUseCase {
 }
 
 func (uc *RemovePrefixUseCase) Execute(ctx context.Context, guildID string) error {
-	return uc.repo.Save(ctx, &guild.Guild{
-		ID:     guildID,
-		Prefix: "",
-	})
+	g, err := uc.repo.FindByID(ctx, guildID)
+	if err != nil {
+		return err
+	}
+	if g == nil {
+		return nil
+	}
+	g.Prefix = ""
+	return uc.repo.Save(ctx, g)
 }
