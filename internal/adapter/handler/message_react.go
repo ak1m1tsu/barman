@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"slices"
 	"strings"
 	"time"
 
@@ -145,32 +144,10 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, r
 		// If the target is the bot — respond with the same reaction back.
 		botID := s.State.User.ID
 		if targetID == botID {
-			isOwner := slices.Contains(ownerIDs, msg.Author.ID)
-			if !isOwner {
-				allowed, err := checkAndSet.Execute(ctx, msg.Author.ID)
-				if err != nil {
-					log.WithError(err).Error("failed to check reaction cooldown")
-					return
-				}
-				if !allowed {
-					return
-				}
-			}
-
-			botGIF, err := fetchGIF.Execute(ctx, reactionType)
-			if err != nil {
-				log.WithError(err).Error("failed to fetch bot reaction gif")
-				return
-			}
-
 			botName := discordutil.MemberDisplayName(&discordgo.Member{User: s.State.User})
-			botSentence := discordutil.ReactionSentence(meta.WithTarget, meta.WithoutTarget, botName, actor)
-			if _, err := s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{
-				Reference: msg.Reference(),
-				Embed:     discordutil.NewReactionEmbed(botSentence, botGIF),
-			}); err != nil {
-				log.WithError(err).Error("failed to send bot reaction message")
-			}
+			discordutil.SendBotReactionReply(ctx, s, msg.ChannelID, msg.Reference(),
+				reactionType, meta.WithTarget, meta.WithoutTarget, botName, actor,
+				fetchGIF, checkAndSet, ownerIDs, msg.Author.ID, log)
 		}
 	}
 }

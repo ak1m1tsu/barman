@@ -3,7 +3,6 @@ package command
 import (
 	"context"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -197,38 +196,15 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 		// If the target is the bot — respond with the same reaction back.
 		botID := s.State.User.ID
 		if targetID == botID {
-			isOwner := slices.Contains(ownerIDs, i.Member.User.ID)
-			if !isOwner {
-				allowed, err := checkAndSet.Execute(ctx, i.Member.User.ID)
-				if err != nil {
-					log.WithError(err).Error("failed to check reaction cooldown")
-					return
-				}
-				if !allowed {
-					return
-				}
-			}
-
-			botGIF, err := fetchGIF.Execute(ctx, reactionType)
-			if err != nil {
-				log.WithError(err).Error("failed to fetch bot reaction gif")
-				return
-			}
-
 			respMsg, err := s.InteractionResponse(i.Interaction)
 			if err != nil {
 				log.WithError(err).Error("failed to fetch interaction response")
 				return
 			}
-
 			botName := discordutil.MemberDisplayName(&discordgo.Member{User: s.State.User})
-			botSentence := discordutil.ReactionSentence(meta.WithTarget, meta.WithoutTarget, botName, actor)
-			if _, err := s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
-				Reference: respMsg.Reference(),
-				Embed:     discordutil.NewReactionEmbed(botSentence, botGIF),
-			}); err != nil {
-				log.WithError(err).Error("react: failed to send bot reaction")
-			}
+			discordutil.SendBotReactionReply(ctx, s, i.ChannelID, respMsg.Reference(),
+				reactionType, meta.WithTarget, meta.WithoutTarget, botName, actor,
+				fetchGIF, checkAndSet, ownerIDs, i.Member.User.ID, log)
 		}
 	}
 
