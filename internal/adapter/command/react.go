@@ -10,6 +10,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
+	"github.com/ak1m1tsu/barman/internal/adapter/discordutil"
 	cooldownuc "github.com/ak1m1tsu/barman/internal/usecase/cooldown"
 	reactionuc "github.com/ak1m1tsu/barman/internal/usecase/reaction"
 )
@@ -90,7 +91,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 
 	handler := func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Member == nil {
-			respondEphemeral(s, i, "Команда доступна только на сервере.")
+			discordutil.RespondEphemeral(s, i, "Команда доступна только на сервере.")
 			return
 		}
 
@@ -119,7 +120,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 						"user_id":  targetID,
 						"command":  "react " + reactionType,
 					}).Error("failed to fetch target guild member")
-					respondEphemeral(s, i, "Не удалось получить информацию о пользователе.")
+					discordutil.RespondEphemeral(s, i, "Не удалось получить информацию о пользователе.")
 					return
 				}
 				targetName = MemberDisplayName(targetMember)
@@ -170,7 +171,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 					log.WithError(err).Error("react: failed to edit response with error message")
 				}
 			} else {
-				respondEphemeral(s, i, errMsg)
+				discordutil.RespondEphemeral(s, i, errMsg)
 			}
 			return
 		}

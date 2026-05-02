@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
+	"github.com/ak1m1tsu/barman/internal/adapter/discordutil"
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 )
 
@@ -91,11 +92,11 @@ func NewAutoRoleInteractionHandler(
 		case autoroleRemoveButtonID:
 			if err := removeUC.Execute(ctx, i.GuildID); err != nil {
 				log.WithError(err).Error("failed to remove autorole")
-				respondComponentEphemeral(s, i, "Ошибка при удалении авто-роли.")
+				discordutil.RespondEphemeral(s, i, "Ошибка при удалении авто-роли.")
 				return
 			}
 			log.WithField("notify", true).Info("autorole removed")
-			respondComponentEphemeral(s, i, "Авто-роль удалена.")
+			discordutil.RespondEphemeral(s, i, "Авто-роль удалена.")
 
 		case autoroleSelectID:
 			if len(data.Values) == 0 {
@@ -105,14 +106,14 @@ func NewAutoRoleInteractionHandler(
 
 			if err := setUC.Execute(ctx, i.GuildID, roleID); err != nil {
 				log.WithError(err).Error("failed to set autorole")
-				respondComponentEphemeral(s, i, "Ошибка при установке авто-роли.")
+				discordutil.RespondEphemeral(s, i, "Ошибка при установке авто-роли.")
 				return
 			}
 			log.WithFields(logrus.Fields{"role_id": roleID, "notify": true}).Info("autorole set")
 
 			g, err := getUC.Execute(ctx, i.GuildID)
 			if err != nil || g == nil {
-				respondComponentEphemeral(s, i, fmt.Sprintf("Авто-роль установлена: <@&%s>.", roleID))
+				discordutil.RespondEphemeral(s, i, fmt.Sprintf("Авто-роль установлена: <@&%s>.", roleID))
 				return
 			}
 

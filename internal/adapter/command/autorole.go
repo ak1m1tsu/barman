@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
+	"github.com/ak1m1tsu/barman/internal/adapter/discordutil"
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 )
 
@@ -22,12 +23,12 @@ func NewAutoRoleCommand(getUC *guilduc.GetAutoRoleUseCase, timeout time.Duration
 
 	handler := func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Member == nil {
-			respondEphemeral(s, i, "Команда доступна только на сервере.")
+			discordutil.RespondEphemeral(s, i, "Команда доступна только на сервере.")
 			return
 		}
 
 		if i.Member.Permissions&discordgo.PermissionManageRoles == 0 {
-			respondEphemeral(s, i, "Недостаточно прав. Требуется право **Управление ролями**.")
+			discordutil.RespondEphemeral(s, i, "Недостаточно прав. Требуется право **Управление ролями**.")
 			return
 		}
 
@@ -36,7 +37,7 @@ func NewAutoRoleCommand(getUC *guilduc.GetAutoRoleUseCase, timeout time.Duration
 		g, err := getUC.Execute(ctx, i.GuildID)
 		if err != nil {
 			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("failed to get autorole")
-			respondEphemeral(s, i, "Ошибка при получении авто-роли.")
+			discordutil.RespondEphemeral(s, i, "Ошибка при получении авто-роли.")
 			return
 		}
 
@@ -50,29 +51,9 @@ func NewAutoRoleCommand(getUC *guilduc.GetAutoRoleUseCase, timeout time.Duration
 		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("Текущая авто-роль: %s", current),
-				Flags:   discordgo.MessageFlagsEphemeral,
-				Components: []discordgo.MessageComponent{
-					discordgo.ActionsRow{
-						Components: []discordgo.MessageComponent{
-							discordgo.Button{
-								Label:    "Изменить",
-								Style:    discordgo.PrimaryButton,
-								CustomID: "autorole_set",
-							},
-							discordgo.Button{
-								Label:    "Удалить",
-								Style:    discordgo.DangerButton,
-								CustomID: "autorole_remove",
-							},
-							discordgo.Button{
-								Label:    "Отменить",
-								Style:    discordgo.SecondaryButton,
-								CustomID: "autorole_cancel",
-							},
-						},
-					},
-				},
+				Content:    fmt.Sprintf("Текущая авто-роль: %s", current),
+				Flags:      discordgo.MessageFlagsEphemeral,
+				Components: []discordgo.MessageComponent{AutoRoleButtonsRow()},
 			},
 		}); err != nil {
 			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("autorole: failed to send response")
@@ -80,16 +61,4 @@ func NewAutoRoleCommand(getUC *guilduc.GetAutoRoleUseCase, timeout time.Duration
 	}
 
 	return cmd, handler
-}
-
-func respondEphemeral(s *discordgo.Session, i *discordgo.InteractionCreate, content string) {
-	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: content,
-			Flags:   discordgo.MessageFlagsEphemeral,
-		},
-	}); err != nil {
-		logrus.WithError(err).WithField("guild_id", i.GuildID).Error("failed to send ephemeral response")
-	}
 }
