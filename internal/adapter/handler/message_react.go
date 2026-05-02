@@ -9,8 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/ak1m1tsu/barman/internal/adapter/command"
-	"github.com/ak1m1tsu/barman/internal/adapter/discordutil"
 	guilddomain "github.com/ak1m1tsu/barman/internal/domain/guild"
+	"github.com/ak1m1tsu/barman/internal/pkg/discordutil"
 	cooldownuc "github.com/ak1m1tsu/barman/internal/usecase/cooldown"
 	reactionuc "github.com/ak1m1tsu/barman/internal/usecase/reaction"
 )

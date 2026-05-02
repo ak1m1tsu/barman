@@ -8,7 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
-	"github.com/ak1m1tsu/barman/internal/adapter/discordutil"
+	"github.com/ak1m1tsu/barman/internal/pkg/discordutil"
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 )
 
