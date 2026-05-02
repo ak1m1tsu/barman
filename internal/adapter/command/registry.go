@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -10,16 +11,19 @@ import (
 // Handler is a slash command interaction handler.
 type Handler func(s *discordgo.Session, i *discordgo.InteractionCreate)
 
-// Registry maps slash commands to their handlers.
+// Registry maps slash commands to their handlers and enforces an optional rate limit.
 type Registry struct {
 	handlers map[string]Handler
 	commands []*discordgo.ApplicationCommand
+	limiter  *RateLimiter // nil disables rate limiting
 }
 
-// NewRegistry returns an empty Registry ready for command registration.
-func NewRegistry() *Registry {
+// NewRegistry returns an empty Registry. Pass a non-nil RateLimiter to enforce
+// a per-user per-command cooldown; pass nil to disable rate limiting.
+func NewRegistry(limiter *RateLimiter) *Registry {
 	return &Registry{
 		handlers: make(map[string]Handler),
+		limiter:  limiter,
 	}
 }
 
@@ -50,6 +54,20 @@ func (r *Registry) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) 
 		log = log.WithField("user_id", i.Member.User.ID)
 	}
 	log.Info("command invoked")
+
+	if r.limiter != nil && i.Member != nil && i.Member.User != nil {
+		if ok, remaining := r.limiter.Allow(i.Member.User.ID, data.Name); !ok {
+			secs := int(remaining.Round(time.Second).Seconds())
+			_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: fmt.Sprintf("⏳ Подождите **%d сек.** перед следующей командой.", secs),
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+			return
+		}
+	}
 
 	h(s, i)
 }

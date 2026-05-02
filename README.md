@@ -45,6 +45,10 @@ discord:
 database:
   path: "barman.db"   # path to SQLite file
 
+timeouts:
+  handler: 10s          # context timeout for every command/event handler
+  command_cooldown: 5s  # per-user per-command rate limit; 0 to disable
+
 notifications:
   webhook_url: "" # Discord webhook URL for bot notifications (leave empty to disable)
 ```

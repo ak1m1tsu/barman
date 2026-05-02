@@ -13,7 +13,8 @@ database:
   path: "barman.db"
 
 timeouts:
-  handler: 10s  # timeout for Discord command and event handlers
+  handler: 10s          # timeout for Discord command and event handlers
+  command_cooldown: 5s  # per-user per-command rate limit; 0 to disable
 
 notifications:
   webhook_url: "" # Discord webhook URL for bot notifications (errors + user actions; leave empty to disable)

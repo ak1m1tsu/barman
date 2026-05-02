@@ -96,7 +96,12 @@ func New(cfg *config.Config) (*App, error) {
 	}
 
 	// Commands
-	registry := command.NewRegistry()
+	var rateLimiter *command.RateLimiter
+	if d := cfg.Timeouts.CommandCooldown; d > 0 {
+		rateLimiter = command.NewRateLimiter(d)
+		log.WithField("command_cooldown", d).Info("command rate limiting enabled")
+	}
+	registry := command.NewRegistry(rateLimiter)
 	registry.Register(command.NewPingCommand())
 	registry.Register(command.NewHelpCommand())
 	registry.Register(command.NewUserInfoCommand())
