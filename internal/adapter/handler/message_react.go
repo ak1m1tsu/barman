@@ -26,7 +26,8 @@ import (
 //
 // Priority: explicit mention > reply context > no target.
 // The guild-specific prefix is fetched at runtime from repo; defaultPrefix is used as fallback.
-func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, timeout time.Duration) func(*discordgo.Session, *discordgo.MessageCreate) {
+// Pass a non-nil RateLimiter to enforce the same per-user cooldown as slash commands.
+func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, rateLimiter *command.RateLimiter, fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndSet *cooldownuc.CheckAndSetUseCase, incrementStat *reactionuc.IncrementStatUseCase, ownerIDs []string, timeout time.Duration) func(*discordgo.Session, *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, msg *discordgo.MessageCreate) {
 		if msg.Author == nil || msg.Author.Bot {
 			return
@@ -61,6 +62,16 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, f
 			"notify":   true,
 		})
 		log.Info("command invoked")
+
+		if rateLimiter != nil {
+			if ok, remaining, violations := rateLimiter.Allow(msg.Author.ID, "react"); !ok {
+				reply := command.RateLimitMessage(violations, remaining)
+				if _, err := s.ChannelMessageSendReply(msg.ChannelID, reply, msg.Reference()); err != nil {
+					log.WithError(err).Error("failed to send rate limit reply")
+				}
+				return
+			}
+		}
 
 		// Resolve actor display name via guild member
 		actorMember, err := s.GuildMember(msg.GuildID, msg.Author.ID)

@@ -51,8 +51,10 @@ type DatabaseConfig struct {
 
 // TimeoutsConfig holds per-handler context timeout durations.
 // Use DefaultHandlerTimeout when Handler is zero.
+// CommandCooldown sets the per-user per-command rate limit; zero disables it.
 type TimeoutsConfig struct {
-	Handler time.Duration `yaml:"handler"`
+	Handler         time.Duration `yaml:"handler"`
+	CommandCooldown time.Duration `yaml:"command_cooldown"`
 }
 
 // Load reads and parses the YAML config file at the given path.

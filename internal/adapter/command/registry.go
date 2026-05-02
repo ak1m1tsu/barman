@@ -10,16 +10,19 @@ import (
 // Handler is a slash command interaction handler.
 type Handler func(s *discordgo.Session, i *discordgo.InteractionCreate)
 
-// Registry maps slash commands to their handlers.
+// Registry maps slash commands to their handlers and enforces an optional rate limit.
 type Registry struct {
 	handlers map[string]Handler
 	commands []*discordgo.ApplicationCommand
+	limiter  *RateLimiter // nil disables rate limiting
 }
 
-// NewRegistry returns an empty Registry ready for command registration.
-func NewRegistry() *Registry {
+// NewRegistry returns an empty Registry. Pass a non-nil RateLimiter to enforce
+// a per-user per-command cooldown; pass nil to disable rate limiting.
+func NewRegistry(limiter *RateLimiter) *Registry {
 	return &Registry{
 		handlers: make(map[string]Handler),
+		limiter:  limiter,
 	}
 }
 
@@ -51,12 +54,39 @@ func (r *Registry) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) 
 	}
 	log.Info("command invoked")
 
+	if r.limiter != nil {
+		userID := interactionUserID(i)
+		if userID != "" {
+			if ok, remaining, violations := r.limiter.Allow(userID, data.Name); !ok {
+				_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: RateLimitMessage(violations, remaining),
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+				return
+			}
+		}
+	}
+
 	h(s, i)
 }
 
 // Commands returns all registered ApplicationCommand definitions.
 func (r *Registry) Commands() []*discordgo.ApplicationCommand {
 	return r.commands
+}
+
+// interactionUserID returns the invoking user's ID from either Member (guild) or User (DM).
+func interactionUserID(i *discordgo.InteractionCreate) string {
+	if i.Member != nil && i.Member.User != nil {
+		return i.Member.User.ID
+	}
+	if i.User != nil {
+		return i.User.ID
+	}
+	return ""
 }
 
 // commandString builds a human-readable command string including subcommand and options.
