@@ -3,7 +3,6 @@ package command
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"slices"
 	"time"
 
@@ -102,7 +101,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 		reactionType := opts[0].StringValue()
 		meta := ReactionsMeta[reactionType]
 
-		actor := MemberDisplayName(i.Member)
+		actor := discordutil.MemberDisplayName(i.Member)
 
 		// Resolve target
 		var targetID string
@@ -123,17 +122,11 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 					discordutil.RespondEphemeral(s, i, "Не удалось получить информацию о пользователе.")
 					return
 				}
-				targetName = MemberDisplayName(targetMember)
+				targetName = discordutil.MemberDisplayName(targetMember)
 			}
 		}
 
-		// Build sentence
-		var sentence string
-		if targetName == "" {
-			sentence = fmt.Sprintf(meta.WithoutTarget, actor)
-		} else {
-			sentence = fmt.Sprintf(meta.WithTarget, actor, targetName)
-		}
+		sentence := discordutil.ReactionSentence(meta.WithTarget, meta.WithoutTarget, actor, targetName)
 
 		log := logrus.WithFields(logrus.Fields{
 			"guild_id": i.GuildID,
@@ -176,11 +169,7 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 			return
 		}
 
-		embed := &discordgo.MessageEmbed{
-			Title: sentence,
-			Color: rand.Intn(0xFFFFFF + 1),
-			Image: &discordgo.MessageEmbedImage{URL: gifURL},
-		}
+		embed := discordutil.NewReactionEmbed(sentence, gifURL)
 
 		if pingTarget {
 			empty := ""
@@ -232,15 +221,11 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 				return
 			}
 
-			botName := MemberDisplayName(&discordgo.Member{User: s.State.User})
-			botSentence := fmt.Sprintf(meta.WithTarget, botName, actor)
+			botName := discordutil.MemberDisplayName(&discordgo.Member{User: s.State.User})
+			botSentence := discordutil.ReactionSentence(meta.WithTarget, meta.WithoutTarget, botName, actor)
 			if _, err := s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
 				Reference: respMsg.Reference(),
-				Embed: &discordgo.MessageEmbed{
-					Title: botSentence,
-					Color: rand.Intn(0xFFFFFF + 1),
-					Image: &discordgo.MessageEmbedImage{URL: botGIF},
-				},
+				Embed:     discordutil.NewReactionEmbed(botSentence, botGIF),
 			}); err != nil {
 				log.WithError(err).Error("react: failed to send bot reaction")
 			}
@@ -248,20 +233,4 @@ func NewReactCommand(fetchGIF *reactionuc.FetchGIFWithFallbackUseCase, checkAndS
 	}
 
 	return cmd, handler
-}
-
-// MemberDisplayName returns the best available display name for a guild member:
-// server nickname > global display name > username. Returns "кто-то" when the
-// member has no user attached (e.g. a synthetic member object).
-func MemberDisplayName(m *discordgo.Member) string {
-	if m.Nick != "" {
-		return m.Nick
-	}
-	if m.User != nil {
-		if m.User.GlobalName != "" {
-			return m.User.GlobalName
-		}
-		return m.User.Username
-	}
-	return "кто-то"
 }

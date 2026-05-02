@@ -113,7 +113,7 @@ func handlePrefixModal(
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	if err := setUC.Execute(ctx, i.GuildID, prefix); err != nil {
 		log.WithError(err).Error("failed to set prefix")
