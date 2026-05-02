@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -58,12 +57,11 @@ func (r *Registry) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) 
 	if r.limiter != nil {
 		userID := interactionUserID(i)
 		if userID != "" {
-			if ok, remaining := r.limiter.Allow(userID, data.Name); !ok {
-				secs := int(remaining.Round(time.Second).Seconds())
+			if ok, remaining, violations := r.limiter.Allow(userID, data.Name); !ok {
 				_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: fmt.Sprintf("⏳ Подождите **%d сек.** перед следующей командой.", secs),
+						Content: RateLimitMessage(violations, remaining),
 						Flags:   discordgo.MessageFlagsEphemeral,
 					},
 				})

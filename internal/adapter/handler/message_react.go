@@ -64,9 +64,8 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, r
 		log.Info("command invoked")
 
 		if rateLimiter != nil {
-			if ok, remaining := rateLimiter.Allow(msg.Author.ID, "react"); !ok {
-				secs := int(remaining.Round(time.Second).Seconds())
-				reply := fmt.Sprintf("⏳ Подождите **%d сек.** перед следующей командой.", secs)
+			if ok, remaining, violations := rateLimiter.Allow(msg.Author.ID, "react"); !ok {
+				reply := command.RateLimitMessage(violations, remaining)
 				if _, err := s.ChannelMessageSendReply(msg.ChannelID, reply, msg.Reference()); err != nil {
 					log.WithError(err).Error("failed to send rate limit reply")
 				}
