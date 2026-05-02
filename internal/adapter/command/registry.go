@@ -55,17 +55,20 @@ func (r *Registry) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) 
 	}
 	log.Info("command invoked")
 
-	if r.limiter != nil && i.Member != nil && i.Member.User != nil {
-		if ok, remaining := r.limiter.Allow(i.Member.User.ID, data.Name); !ok {
-			secs := int(remaining.Round(time.Second).Seconds())
-			_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: fmt.Sprintf("⏳ Подождите **%d сек.** перед следующей командой.", secs),
-					Flags:   discordgo.MessageFlagsEphemeral,
-				},
-			})
-			return
+	if r.limiter != nil {
+		userID := interactionUserID(i)
+		if userID != "" {
+			if ok, remaining := r.limiter.Allow(userID, data.Name); !ok {
+				secs := int(remaining.Round(time.Second).Seconds())
+				_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: fmt.Sprintf("⏳ Подождите **%d сек.** перед следующей командой.", secs),
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+				return
+			}
 		}
 	}
 
@@ -75,6 +78,17 @@ func (r *Registry) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) 
 // Commands returns all registered ApplicationCommand definitions.
 func (r *Registry) Commands() []*discordgo.ApplicationCommand {
 	return r.commands
+}
+
+// interactionUserID returns the invoking user's ID from either Member (guild) or User (DM).
+func interactionUserID(i *discordgo.InteractionCreate) string {
+	if i.Member != nil && i.Member.User != nil {
+		return i.Member.User.ID
+	}
+	if i.User != nil {
+		return i.User.ID
+	}
+	return ""
 }
 
 // commandString builds a human-readable command string including subcommand and options.
