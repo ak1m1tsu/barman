@@ -120,7 +120,7 @@ func New(cfg *config.Config) (*App, error) {
 	if defaultPrefix == "" {
 		defaultPrefix = "!"
 	}
-	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, fetchGIF, checkAndSet, incrementStat, cfg.Discord.OwnerIDs, handlerTimeout))
+	bot.Session.AddHandler(handler.NewMessageReactHandler(guildRepo, defaultPrefix, rateLimiter, fetchGIF, checkAndSet, incrementStat, cfg.Discord.OwnerIDs, handlerTimeout))
 	bot.Session.AddHandler(handler.NewReactionsInteractionHandler(getStats, handlerTimeout))
 
 	log.Info("all dependencies wired")
