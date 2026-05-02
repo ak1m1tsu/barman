@@ -8,15 +8,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
+	"github.com/ak1m1tsu/barman/internal/adapter/command"
 	"github.com/ak1m1tsu/barman/internal/pkg/discordutil"
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
-)
-
-const (
-	autoroleSetButtonID    = "autorole_set"
-	autoroleRemoveButtonID = "autorole_remove"
-	autoroleCancelButtonID = "autorole_cancel"
-	autoroleSelectID       = "autorole_role_select"
 )
 
 // NewAutoRoleInteractionHandler handles button clicks and role selection for /autorole.
@@ -45,7 +39,7 @@ func NewAutoRoleInteractionHandler(
 		}
 
 		switch data.CustomID {
-		case autoroleSetButtonID:
+		case command.AutoRoleSetButtonID:
 			// Swap buttons for a Role SelectMenu in-place
 			if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseUpdateMessage,
@@ -57,7 +51,7 @@ func NewAutoRoleInteractionHandler(
 							Components: []discordgo.MessageComponent{
 								discordgo.SelectMenu{
 									MenuType:    discordgo.RoleSelectMenu,
-									CustomID:    autoroleSelectID,
+									CustomID:    command.AutoRoleSelectID,
 									Placeholder: "Выберите роль...",
 								},
 							},
@@ -67,7 +61,7 @@ func NewAutoRoleInteractionHandler(
 								discordgo.Button{
 									Label:    "Отменить",
 									Style:    discordgo.SecondaryButton,
-									CustomID: autoroleCancelButtonID,
+									CustomID: command.AutoRoleCancelButtonID,
 								},
 							},
 						},
@@ -77,7 +71,7 @@ func NewAutoRoleInteractionHandler(
 				log.WithError(err).Error("autorole: failed to show role select")
 			}
 
-		case autoroleCancelButtonID:
+		case command.AutoRoleCancelButtonID:
 			if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseUpdateMessage,
 				Data: &discordgo.InteractionResponseData{
@@ -89,7 +83,7 @@ func NewAutoRoleInteractionHandler(
 				log.WithError(err).Error("autorole: failed to send cancel response")
 			}
 
-		case autoroleRemoveButtonID:
+		case command.AutoRoleRemoveButtonID:
 			if err := removeUC.Execute(ctx, i.GuildID); err != nil {
 				log.WithError(err).Error("failed to remove autorole")
 				discordutil.RespondEphemeral(s, i, "Ошибка при удалении авто-роли.")
@@ -98,7 +92,7 @@ func NewAutoRoleInteractionHandler(
 			log.WithField("notify", true).Info("autorole removed")
 			discordutil.RespondEphemeral(s, i, "Авто-роль удалена.")
 
-		case autoroleSelectID:
+		case command.AutoRoleSelectID:
 			if len(data.Values) == 0 {
 				return
 			}
@@ -120,29 +114,9 @@ func NewAutoRoleInteractionHandler(
 			if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseUpdateMessage,
 				Data: &discordgo.InteractionResponseData{
-					Content: fmt.Sprintf("Текущая авто-роль: <@&%s>", g.AutoRoleID),
-					Flags:   discordgo.MessageFlagsEphemeral,
-					Components: []discordgo.MessageComponent{
-						discordgo.ActionsRow{
-							Components: []discordgo.MessageComponent{
-								discordgo.Button{
-									Label:    "Изменить",
-									Style:    discordgo.PrimaryButton,
-									CustomID: autoroleSetButtonID,
-								},
-								discordgo.Button{
-									Label:    "Удалить",
-									Style:    discordgo.DangerButton,
-									CustomID: autoroleRemoveButtonID,
-								},
-								discordgo.Button{
-									Label:    "Отменить",
-									Style:    discordgo.SecondaryButton,
-									CustomID: autoroleCancelButtonID,
-								},
-							},
-						},
-					},
+					Content:    fmt.Sprintf("Текущая авто-роль: <@&%s>", g.AutoRoleID),
+					Flags:      discordgo.MessageFlagsEphemeral,
+					Components: []discordgo.MessageComponent{command.AutoRoleButtonsRow()},
 				},
 			}); err != nil {
 				log.WithError(err).Error("autorole: failed to update message after role set")
