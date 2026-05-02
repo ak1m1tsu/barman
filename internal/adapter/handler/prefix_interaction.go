@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
+	"github.com/ak1m1tsu/barman/internal/pkg/discordutil"
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 )
 
@@ -82,11 +83,11 @@ func handlePrefixButton(
 		defer cancel()
 		if err := removeUC.Execute(ctx, i.GuildID); err != nil {
 			log.WithError(err).Error("failed to reset prefix")
-			respondComponentEphemeral(s, i, "Ошибка при сбросе префикса.")
+			discordutil.RespondEphemeral(s, i, "Ошибка при сбросе префикса.")
 			return
 		}
 		log.WithField("notify", true).Info("prefix reset to default")
-		respondComponentEphemeral(s, i, "Префикс сброшен до глобального значения по умолчанию.")
+		discordutil.RespondEphemeral(s, i, "Префикс сброшен до глобального значения по умолчанию.")
 	}
 }
 
@@ -108,20 +109,20 @@ func handlePrefixModal(
 
 	prefix := modalTextValue(data.Components, prefixInputID)
 	if prefix == "" {
-		respondComponentEphemeral(s, i, "Префикс не может быть пустым.")
+		discordutil.RespondEphemeral(s, i, "Префикс не может быть пустым.")
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	if err := setUC.Execute(ctx, i.GuildID, prefix); err != nil {
 		log.WithError(err).Error("failed to set prefix")
-		respondComponentEphemeral(s, i, "Ошибка при сохранении префикса.")
+		discordutil.RespondEphemeral(s, i, "Ошибка при сохранении префикса.")
 		return
 	}
 
 	log.WithFields(logrus.Fields{"prefix": prefix, "notify": true}).Info("prefix updated")
-	respondComponentEphemeral(s, i, fmt.Sprintf("Префикс изменён на `%s`.", prefix))
+	discordutil.RespondEphemeral(s, i, fmt.Sprintf("Префикс изменён на `%s`.", prefix))
 }
 
 // modalTextValue extracts the submitted value for a TextInput with the given customID.
@@ -139,16 +140,4 @@ func modalTextValue(components []discordgo.MessageComponent, customID string) st
 		}
 	}
 	return ""
-}
-
-func respondComponentEphemeral(s *discordgo.Session, i *discordgo.InteractionCreate, content string) {
-	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: content,
-			Flags:   discordgo.MessageFlagsEphemeral,
-		},
-	}); err != nil {
-		logrus.WithError(err).WithField("guild_id", i.GuildID).Error("failed to send component ephemeral response")
-	}
 }

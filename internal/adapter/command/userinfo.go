@@ -7,6 +7,8 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
+
+	"github.com/ak1m1tsu/barman/internal/pkg/discordutil"
 )
 
 // NewUserInfoCommand returns the /userinfo slash command and its handler.
@@ -27,7 +29,7 @@ func NewUserInfoCommand() (*discordgo.ApplicationCommand, Handler) {
 
 	handler := func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Member == nil {
-			respondEphemeral(s, i, "Команда доступна только на сервере.")
+			discordutil.RespondEphemeral(s, i, "Команда доступна только на сервере.")
 			return
 		}
 
@@ -45,7 +47,7 @@ func NewUserInfoCommand() (*discordgo.ApplicationCommand, Handler) {
 				"user_id":  target.ID,
 				"command":  "userinfo",
 			}).Error("failed to fetch guild member")
-			respondEphemeral(s, i, "Не удалось получить информацию о пользователе.")
+			discordutil.RespondEphemeral(s, i, "Не удалось получить информацию о пользователе.")
 			return
 		}
 

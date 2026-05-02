@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 
+	"github.com/ak1m1tsu/barman/internal/pkg/discordutil"
 	guilduc "github.com/ak1m1tsu/barman/internal/usecase/guild"
 )
 
@@ -22,12 +23,12 @@ func NewPrefixCommand(getUC *guilduc.GetPrefixUseCase, timeout time.Duration) (*
 
 	handler := func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Member == nil {
-			respondEphemeral(s, i, "Команда доступна только на сервере.")
+			discordutil.RespondEphemeral(s, i, "Команда доступна только на сервере.")
 			return
 		}
 
 		if i.Member.Permissions&discordgo.PermissionManageGuild == 0 {
-			respondEphemeral(s, i, "Недостаточно прав. Требуется право **Управление сервером**.")
+			discordutil.RespondEphemeral(s, i, "Недостаточно прав. Требуется право **Управление сервером**.")
 			return
 		}
 
@@ -36,7 +37,7 @@ func NewPrefixCommand(getUC *guilduc.GetPrefixUseCase, timeout time.Duration) (*
 		prefix, err := getUC.Execute(ctx, i.GuildID)
 		if err != nil {
 			logrus.WithError(err).WithField("guild_id", i.GuildID).Error("failed to get prefix")
-			respondEphemeral(s, i, "Ошибка при получении префикса.")
+			discordutil.RespondEphemeral(s, i, "Ошибка при получении префикса.")
 			return
 		}
 

@@ -63,7 +63,16 @@ Some slash commands spawn buttons or modals (e.g. `/prefix`, `/autorole`). These
 - `adapter/command/prefix.go` — handles the `/prefix` slash command, shows a message with buttons.
 - `adapter/handler/prefix_interaction.go` — handles the subsequent button clicks (`InteractionMessageComponent`) and modal submits (`InteractionModalSubmit`).
 
-Both are registered in `app.go`. The interaction handler is identified by `CustomID` constants defined in the handler file.
+Both are registered in `app.go`. The interaction handler is identified by `CustomID` constants. Constants shared between a command and its interaction handler are defined in the command file (e.g. `AutoRoleSetButtonID` in `command/autorole_helpers.go`) so the handler can import them without creating a circular dependency.
+
+### Shared helper packages
+
+Reusable Discord response helpers, data transformations, and utilities that are consumed by more than one `adapter` sub-package belong in `internal/pkg/`. The current package is `internal/pkg/discordutil/`.
+
+Rules:
+- If a helper is used in only one package, keep it there (unexported if possible).
+- If the same logic appears in two or more packages under `adapter/`, extract it to `internal/pkg/discordutil/`.
+- `internal/pkg/` may import `usecase/` and `domain/` but must never import `adapter/` or `infrastructure/`.
 
 ### Adding new functionality
 
@@ -72,6 +81,7 @@ Both are registered in `app.go`. The interaction handler is identified by `Custo
 - New event handler → `adapter/handler/`, add `bot.Session.AddHandler` in `app.New`
 - New external API client → `infrastructure/`
 - New persistence interface → `domain/`, implementation in `adapter/repository/sqlite/`
+- Shared Discord response helper or transformation → `internal/pkg/discordutil/`
 
 ## Tests
 

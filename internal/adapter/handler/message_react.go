@@ -2,9 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
-	"slices"
 	"strings"
 	"time"
 
@@ -13,6 +10,7 @@ import (
 
 	"github.com/ak1m1tsu/barman/internal/adapter/command"
 	guilddomain "github.com/ak1m1tsu/barman/internal/domain/guild"
+	"github.com/ak1m1tsu/barman/internal/pkg/discordutil"
 	cooldownuc "github.com/ak1m1tsu/barman/internal/usecase/cooldown"
 	reactionuc "github.com/ak1m1tsu/barman/internal/usecase/reaction"
 )
@@ -79,7 +77,7 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, r
 			log.WithError(err).Error("failed to fetch actor guild member")
 			return
 		}
-		actor := command.MemberDisplayName(actorMember)
+		actor := discordutil.MemberDisplayName(actorMember)
 
 		// Resolve target: explicit mention > reply context > none
 		var targetID string
@@ -99,7 +97,7 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, r
 					log.WithError(err).Error("failed to fetch target guild member")
 					return
 				}
-				targetName = command.MemberDisplayName(targetMember)
+				targetName = discordutil.MemberDisplayName(targetMember)
 			}
 		} else if msg.MessageReference != nil {
 			// Fall back to reply context
@@ -115,19 +113,13 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, r
 					if err != nil {
 						targetName = refMsg.Author.Username
 					} else {
-						targetName = command.MemberDisplayName(targetMember)
+						targetName = discordutil.MemberDisplayName(targetMember)
 					}
 				}
 			}
 		}
 
-		// Build sentence
-		var sentence string
-		if targetName == "" {
-			sentence = fmt.Sprintf(meta.WithoutTarget, actor)
-		} else {
-			sentence = fmt.Sprintf(meta.WithTarget, actor, targetName)
-		}
+		sentence := discordutil.ReactionSentence(meta.WithTarget, meta.WithoutTarget, actor, targetName)
 
 		gifURL, err := fetchGIF.Execute(ctx, reactionType)
 		if err != nil {
@@ -138,14 +130,8 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, r
 			return
 		}
 
-		embed := &discordgo.MessageEmbed{
-			Title: sentence,
-			Color: rand.Intn(0xFFFFFF + 1),
-			Image: &discordgo.MessageEmbedImage{URL: gifURL},
-		}
-
 		if _, err := s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{
-			Embed: embed,
+			Embed: discordutil.NewReactionEmbed(sentence, gifURL),
 		}); err != nil {
 			log.WithError(err).Error("failed to send reaction embed")
 			return
@@ -158,36 +144,10 @@ func NewMessageReactHandler(repo guilddomain.Repository, defaultPrefix string, r
 		// If the target is the bot — respond with the same reaction back.
 		botID := s.State.User.ID
 		if targetID == botID {
-			isOwner := slices.Contains(ownerIDs, msg.Author.ID)
-			if !isOwner {
-				allowed, err := checkAndSet.Execute(ctx, msg.Author.ID)
-				if err != nil {
-					log.WithError(err).Error("failed to check reaction cooldown")
-					return
-				}
-				if !allowed {
-					return
-				}
-			}
-
-			botGIF, err := fetchGIF.Execute(ctx, reactionType)
-			if err != nil {
-				log.WithError(err).Error("failed to fetch bot reaction gif")
-				return
-			}
-
-			botName := command.MemberDisplayName(&discordgo.Member{User: s.State.User})
-			botSentence := fmt.Sprintf(meta.WithTarget, botName, actor)
-			if _, err := s.ChannelMessageSendComplex(msg.ChannelID, &discordgo.MessageSend{
-				Reference: msg.Reference(),
-				Embed: &discordgo.MessageEmbed{
-					Title: botSentence,
-					Color: rand.Intn(0xFFFFFF + 1),
-					Image: &discordgo.MessageEmbedImage{URL: botGIF},
-				},
-			}); err != nil {
-				log.WithError(err).Error("failed to send bot reaction message")
-			}
+			botName := discordutil.MemberDisplayName(&discordgo.Member{User: s.State.User})
+			discordutil.SendBotReactionReply(ctx, s, msg.ChannelID, msg.Reference(),
+				reactionType, meta.WithTarget, meta.WithoutTarget, botName, actor,
+				fetchGIF, checkAndSet, ownerIDs, msg.Author.ID, log)
 		}
 	}
 }

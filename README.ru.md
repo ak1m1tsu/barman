@@ -94,6 +94,8 @@ internal/
 │   ├── command/           # slash-команды (discordgo)
 │   ├── handler/           # обработчики GuildMemberAdd, MessageCreate, интерактивных компонентов
 │   └── repository/sqlite/ # реализация Repository через SQLite
+├── pkg/
+│   └── discordutil/       # общие хелперы для Discord-ответов и преобразования данных
 └── infrastructure/
     ├── config/            # загрузка YAML-конфига
     ├── database/          # открытие SQLite
